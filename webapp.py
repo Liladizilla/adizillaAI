@@ -207,8 +207,8 @@ def save_chat(chat_id: str, payload: ChatRecord, user: dict = Depends(require_fi
         if not target.get().exists and len(list(collection.limit(100).stream())) >= 100:
             raise HTTPException(status_code=429, detail="Cloud history is limited to 100 conversations per account.")
         safe_messages = [
-            {"role": message.role, "content": message.content[:8000]}
-            for message in payload.messages[-60:]
+            {"role": message.role, "content": message.content[:4000]}
+            for message in payload.messages[-40:]
         ]
         target.set({
             "title": payload.title.strip() or "New conversation",

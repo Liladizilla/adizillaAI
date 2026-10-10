@@ -714,7 +714,9 @@ let sendPasswordResetEmail, signOut, updateProfile;
   document.querySelectorAll("[data-panel]").forEach(btn => btn.addEventListener("click", () => showPanel(btn.dataset.panel)));
   $("newChat").addEventListener("click", newChat);
   $("chatForm").addEventListener("submit", e => { e.preventDefault(); sendMessage($("promptInput").value); });
-  $("promptInput").addEventListener("input", resizeInput);\n  $("promptInput").addEventListener("focus", () => $("inputHint").classList.remove("hidden"));\n  $("promptInput").addEventListener("blur", () => $("inputHint").classList.add("hidden"));
+  $("promptInput").addEventListener("input", resizeInput);
+  $("promptInput").addEventListener("focus", () => $("inputHint").classList.remove("hidden"));
+  $("promptInput").addEventListener("blur", () => $("inputHint").classList.add("hidden"));
   $("promptInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("chatForm").requestSubmit(); } });
   document.querySelectorAll("[data-prompt]").forEach(btn => btn.addEventListener("click", () => {
     const input = $("promptInput");

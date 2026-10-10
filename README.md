@@ -86,6 +86,18 @@ Image creation uses the xAI Imagine API. Configure a valid `IMAGE_API_KEY` in Ve
 
 Image attachments use a separate vision-capable model because the default Groq chat model may not accept image input. Configure a valid xAI key as `VISION_API_KEY` (or use `GROK_02`) and optionally set `VISION_BASE_URL` and `VISION_MODEL`. The default vision model is `grok-4.7`. Text and document attachments continue to use the normal chat provider.
 
+### RevenueCat Web Billing
+
+The web client loads the **public Web Billing SDK key** from `GET /api/revenuecat/config`. Configure the Vercel environment variable `REVENUECAT_API_KEY` (no `VITE_` prefix needed). This endpoint returns a value only when it matches RevenueCat's Web Billing public-key format: `rcb_...` or `rcb_sb_...`. The key is public by design and will be visible to a browser; never put a secret RevenueCat REST API key in this variable.
+
+1. In RevenueCat, configure a supported web billing provider (RevenueCat Billing, Stripe Billing, or Paddle).
+2. Create the `adizilla_ai_pro` entitlement and attach the `lifetime`, `yearly`, and `monthly` web products.
+3. Add those products to an Offering, mark it Current, and publish its web paywall.
+4. Set `REVENUECAT_API_KEY` in Vercel Production and Preview to the **Web Billing public SDK key**, then redeploy.
+5. Test the full purchase and cancellation flow using sandbox products before enabling paid features.
+
+A RevenueCat Test Store key beginning with `test_` is not a Web Billing SDK key. The config endpoint will deliberately refuse to send it to the browser. The client-side entitlement check is for UI only; implement server-side entitlement verification and lifecycle webhooks before unlocking protected backend features. RevenueCat's native Customer Center UI is not available in this vanilla web integration, so link customers to the billing provider's supported subscription-management portal.
+
 ### Usage limits
 
 The server enforces limits through Firestore counters:

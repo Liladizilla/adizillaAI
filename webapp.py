@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 load_dotenv()
 logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent
-app = FastAPI(title="AdizillaAI", version="0.2.0")
+app = FastAPI(title="AdizillaAI", version="0.2.1")
 app.mount("/assets", StaticFiles(directory=ROOT / "web"), name="assets")
 
 
@@ -28,6 +28,30 @@ class ChatRequest(BaseModel):
     memory: str = Field(default="", max_length=3000)
 
 
+def provider_config():
+    """Prefer the standard key; also support the user's Vercel grok_02 variable."""
+    standard_key = os.getenv("AI_API_KEY")
+    if standard_key:
+        return {
+            "api_key": standard_key,
+            "provider": os.getenv("AI_PROVIDER", "groq"),
+            "base_url": os.getenv("AI_BASE_URL", "https://api.groq.com/openai/v1").strip(),
+            "model": os.getenv("AI_MODEL", "openai/gpt-oss-20b").strip(),
+        }
+
+    # The Vercel variable grok_02 indicates an xAI/Grok key. Use xAI defaults
+    # instead of sending that key to the unrelated Groq endpoint.
+    xai_key = os.getenv("GROK_02") or os.getenv("grok_02")
+    if xai_key:
+        return {
+            "api_key": xai_key,
+            "provider": "xai",
+            "base_url": os.getenv("XAI_BASE_URL", "https://api.x.ai/v1").strip(),
+            "model": os.getenv("XAI_MODEL", "grok-4.7").strip(),
+        }
+    return None
+
+
 @app.get("/")
 def home():
     return FileResponse(ROOT / "web" / "index.html")
@@ -35,27 +59,30 @@ def home():
 
 @app.get("/api/health")
 def health():
+    config = provider_config()
     return {
         "ok": True,
-        "provider_configured": bool(os.getenv("AI_API_KEY")),
-        "provider": os.getenv("AI_PROVIDER", "groq"),
-        "model": os.getenv("AI_MODEL", "openai/gpt-oss-20b"),
+        "provider_configured": bool(config and config["api_key"]),
+        "provider": config["provider"] if config else os.getenv("AI_PROVIDER", "groq"),
+        "model": config["model"] if config else os.getenv("AI_MODEL", "openai/gpt-oss-20b"),
     }
 
 
 @app.post("/api/chat")
 def chat(payload: ChatRequest):
-    api_key = os.getenv("AI_API_KEY")
-    if not api_key:
+    config = provider_config()
+    if not config or not config["api_key"]:
         raise HTTPException(
             status_code=503,
-            detail="AI provider is not configured yet. Add AI_API_KEY to your server environment.",
+            detail="AI provider is not configured yet. Add AI_API_KEY or a grok_02 key to your server environment.",
         )
 
-    base_url = os.getenv("AI_BASE_URL", "https://api.groq.com/openai/v1").strip()
-    model = os.getenv("AI_MODEL", "openai/gpt-oss-20b").strip()
+    api_key = config["api_key"]
+    base_url = config["base_url"]
+    model = config["model"]
+    provider = config["provider"]
     if not base_url or not model:
-        raise HTTPException(status_code=503, detail="AI_BASE_URL and AI_MODEL must be configured.")
+        raise HTTPException(status_code=503, detail="Provider base URL and model must be configured.")
 
     system_prompt = (
         "You are AdizillaAI, a thoughtful, capable AI assistant. Be accurate, clear, "
@@ -85,12 +112,13 @@ def chat(payload: ChatRequest):
     except HTTPException:
         raise
     except Exception as exc:
-        # Avoid returning provider internals or credentials to the browser.
         status = getattr(exc, "status_code", None)
-        provider = os.getenv("AI_PROVIDER", "groq")
-        logger.error("AI provider request failed: error_type=%s status=%s provider=%s model=%s", type(exc).__name__, status, provider, model)
+        logger.error(
+            "AI provider request failed: error_type=%s status=%s provider=%s model=%s",
+            type(exc).__name__, status, provider, model,
+        )
         if status == 429:
-            raise HTTPException(status_code=429, detail="The provider quota or rate limit was reached. Try later or switch providers.")
+            raise HTTPException(status_code=429, detail="The provider quota or rate limit was reached. Try later.")
         if status in (401, 403):
             raise HTTPException(status_code=502, detail="The AI provider rejected the configured key or model. Check server settings.")
         raise HTTPException(status_code=502, detail="The AI provider request failed. Check the server logs and provider status.") from exc

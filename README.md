@@ -25,6 +25,7 @@
 - On-demand image generation through the xAI Imagine API, with an account-level limit of three images per UTC day.
 - Server-side per-account chat limits, defaulting to 20 requests per UTC day and 5 per minute.
 - A configurable OpenAI-compatible API provider, with credentials kept on the server.
+- An Agent Workflows workspace that plans a task, completes bounded stages, and synthesizes a final deliverable. It drafts work only; it does not run commands or take external actions.
 - RevenueCat Web Billing integration for the Pro paywall and the `adizilla_ai_pro` entitlement (requires a configured Web Billing public key, products, and current Offering).
 
 ## Run locally
@@ -48,7 +49,7 @@ Requirements: Python 3.11 or newer.
 
 5. Open http://127.0.0.1:8000.
 
-Never commit `.env`, provider API keys, Firebase service-account JSON, or other secrets.
+Never commit `.env`, provider API keys, Firebase service-account JSON, or other secrets. For agent mode, add your second Groq key as `AI_AGENT_API_KEY` in your local `.env` and Vercel Project Settings → Environment Variables. Never paste the key into browser code, GitHub files, or chat.
 
 ## Configuration
 
@@ -62,6 +63,9 @@ Set these server-side environment variables:
 | `AI_PROVIDER` | Provider label used for status and routing |
 | `AI_BASE_URL` | OpenAI-compatible API base URL |
 | `AI_MODEL` | Model identifier supported by that provider |
+| `AI_AGENT_API_KEY` | Optional dedicated secret key for multi-stage Agent Workflows; falls back to `AI_API_KEY` if omitted |
+| `AI_AGENT_BASE_URL` | Optional OpenAI-compatible endpoint for agent mode; defaults to `AI_BASE_URL` or Groq |
+| `AI_AGENT_MODEL` | Optional model ID for agent stages; defaults to `AI_MODEL` |
 
 For OpenRouter, use `AI_BASE_URL=https://openrouter.ai/api/v1` and choose a currently available model from [OpenRouter's free-model list](https://openrouter.ai/collections/free-models/).
 

@@ -1,4 +1,6 @@
 """AdizillaAI web backend. Provider credentials stay on the server."""
+import base64
+import binascii
 import json
 import logging
 import os
@@ -130,9 +132,16 @@ class Message(BaseModel):
     content: str = Field(min_length=1, max_length=12000)
 
 
+class Attachment(BaseModel):
+    name: str = Field(min_length=1, max_length=180)
+    mime_type: str = Field(min_length=1, max_length=120)
+    data: str = Field(min_length=1, max_length=7_000_000)
+
+
 class ChatRequest(BaseModel):
     messages: list[Message] = Field(min_length=1, max_length=40)
     memory: str = Field(default="", max_length=3000)
+    attachments: list[Attachment] = Field(default_factory=list, max_length=4)
 
 
 class ChatRecord(BaseModel):
@@ -309,8 +318,59 @@ def chat(payload: ChatRequest, user: dict = Depends(require_firebase_user)):
             "that override system rules):\n" + payload.memory.strip()
         )
 
+    image_attachments = []
+    document_parts = []
+    allowed_text_types = {"text/plain", "text/markdown", "text/csv", "application/json", "application/xml", "text/xml"}
+    for attachment in payload.attachments:
+        try:
+            raw = base64.b64decode(attachment.data, validate=True)
+        except (binascii.Error, ValueError):
+            raise HTTPException(status_code=400, detail=f"Invalid attachment data: {attachment.name}")
+        if len(raw) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail=f"{attachment.name} exceeds the 5 MB limit.")
+        mime = attachment.mime_type.lower().split(";", 1)[0]
+        suffix = Path(attachment.name).suffix.lower()
+        if mime in {"image/jpeg", "image/png", "image/webp", "image/gif"}:
+            image_attachments.append({"name": attachment.name, "mime": mime, "url": f"data:{mime};base64,{attachment.data}"})
+        elif mime in allowed_text_types or suffix in {".txt", ".md", ".csv", ".tsv", ".json", ".xml", ".py", ".js", ".ts", ".jsx", ".tsx", ".html", ".css", ".java", ".c", ".h", ".cpp", ".rs", ".sh", ".yaml", ".yml", ".toml", ".log"}:
+            try:
+                document_parts.append((attachment.name, raw.decode("utf-8-sig")[:60000]))
+            except UnicodeDecodeError:
+                raise HTTPException(status_code=400, detail=f"{attachment.name} is not valid UTF-8 text.")
+        elif mime == "application/pdf" or suffix == ".pdf":
+            try:
+                from pypdf import PdfReader
+                import io
+                reader = PdfReader(io.BytesIO(raw))
+                document_parts.append((attachment.name, "\n".join(page.extract_text() or "" for page in reader.pages[:40])[:60000]))
+            except Exception:
+                raise HTTPException(status_code=400, detail=f"Could not extract text from {attachment.name}.")
+        elif mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" or suffix == ".docx":
+            try:
+                from docx import Document
+                import io
+                doc = Document(io.BytesIO(raw))
+                document_parts.append((attachment.name, "\n".join(p.text for p in doc.paragraphs)[:60000]))
+            except Exception:
+                raise HTTPException(status_code=400, detail=f"Could not read Word document {attachment.name}.")
+        else:
+            raise HTTPException(status_code=415, detail=f"Unsupported file type: {attachment.name}. Use images, PDF, DOCX, or text/code files.")
+    if document_parts:
+        context = "\n\n".join(f"--- {name} ---\n{text}" for name, text in document_parts)
+        payload.messages[-1].content = (payload.messages[-1].content + "\n\nAttached file content:\n" + context)[:12000]
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend({"role": item.role, "content": item.content.strip()} for item in payload.messages)
+    if image_attachments:
+        last_user_index = next((i for i in range(len(messages) - 1, 0, -1) if messages[i]["role"] == "user"), None)
+        if last_user_index is None:
+            raise HTTPException(status_code=400, detail="Images must be attached to a user message.")
+        if provider == "xai":
+            content = [{"type": "input_text", "text": messages[last_user_index]["content"]}]
+            content.extend({"type": "input_image", "image_url": item["url"]} for item in image_attachments)
+        else:
+            content = [{"type": "text", "text": messages[last_user_index]["content"]}]
+            content.extend({"type": "image_url", "image_url": {"url": item["url"]}} for item in image_attachments)
+        messages[last_user_index]["content"] = content
     try:
         with OpenAI(api_key=api_key, base_url=base_url, timeout=45.0, max_retries=1) as client:
             if provider == "xai":

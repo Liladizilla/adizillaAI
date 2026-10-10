@@ -320,14 +320,16 @@ def chat(payload: ChatRequest, user: dict = Depends(require_firebase_user)):
 
     image_attachments = []
     document_parts = []
+    total_attachment_bytes = 0
     allowed_text_types = {"text/plain", "text/markdown", "text/csv", "application/json", "application/xml", "text/xml"}
     for attachment in payload.attachments:
         try:
             raw = base64.b64decode(attachment.data, validate=True)
         except (binascii.Error, ValueError):
             raise HTTPException(status_code=400, detail=f"Invalid attachment data: {attachment.name}")
-        if len(raw) > 5 * 1024 * 1024:
-            raise HTTPException(status_code=413, detail=f"{attachment.name} exceeds the 5 MB limit.")
+        total_attachment_bytes += len(raw)
+        if len(raw) > 2_500_000 or total_attachment_bytes > 3_000_000:
+            raise HTTPException(status_code=413, detail="Attachments must be under 2.5 MB each and 3 MB combined.")
         mime = attachment.mime_type.lower().split(";", 1)[0]
         suffix = Path(attachment.name).suffix.lower()
         if mime in {"image/jpeg", "image/png", "image/webp", "image/gif"}:

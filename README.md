@@ -80,9 +80,11 @@ The hosted app requires Firebase Authentication and Firestore.
 
 The Firebase Web SDK configuration is public by design. The service-account JSON is highly sensitive. Restrict the Web API key to the APIs this app needs.
 
-### Image generation
+### Images and vision
 
-Image creation uses the xAI Imagine API. Configure `IMAGE_API_KEY` in Vercel (or use an existing `GROK_02` key), and optionally set `IMAGE_BASE_URL` and `IMAGE_MODEL`. The default model is `grok-imagine-image-2.0`. Image generation may incur separate provider charges; the app limits each account to three generations per UTC day. Generated image URLs are temporary, so save an image you want to keep.
+Image creation uses the xAI Imagine API. Configure a valid `IMAGE_API_KEY` in Vercel (or use an existing `GROK_02` key), and optionally set `IMAGE_BASE_URL` and `IMAGE_MODEL`. The default model is `grok-imagine-image-2.0`. Image generation may incur separate provider charges; the app limits each account to three generations per UTC day. Generated image URLs are temporary, so save an image you want to keep.
+
+Image attachments use a separate vision-capable model because the default Groq chat model may not accept image input. Configure a valid xAI key as `VISION_API_KEY` (or use `GROK_02`) and optionally set `VISION_BASE_URL` and `VISION_MODEL`. The default vision model is `grok-4.7`. Text and document attachments continue to use the normal chat provider.
 
 ### Usage limits
 

@@ -11,6 +11,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   let memoryEnabled = read(KEYS.enabled, false);
   let currentId = null;
   let busy = false;
+  let activeChatController = null;
   let pendingAttachments = [];
   let theme = read(KEYS.theme, "system");
   let firebaseAuth = null;
@@ -406,11 +407,13 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const chat = activeChat(); chat.messages.push({ role: "user", content: displayContent });
     if (chat.messages.filter(m => m.role === "user").length === 1) chat.title = content.slice(0, 48) + (content.length > 48 ? "…" : "");
     chat.updatedAt = Date.now(); persistChats(); renderMessages(); $("promptInput").value = ""; resizeInput();
-    busy = true; $("sendBtn").disabled = true; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
+    busy = true; $("sendBtn").disabled = true; $("sendBtn").textContent = "Stop"; $("sendBtn").setAttribute("aria-label", "Stop generating"); $("typing").textContent = "Reading your message…"; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
+    activeChatController = new AbortController();
     try {
       const recent = chat.messages.filter(m => !m.isError).slice(-24).map(m => ({ role: m.role, content: m.content }));
       const idToken = await firebaseUser.getIdToken();
-      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify({ messages: recent, memory: memoryEnabled ? memory : "", attachments: attachments }) });
+      $("typing").textContent = "Writing…";
+      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify({ messages: recent, memory: memoryEnabled ? memory : "", attachments: attachments }), signal: activeChatController.signal });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "The request failed. Please try again.");
       chat.messages.push({ role: "assistant", content: data.answer }); chat.updatedAt = Date.now(); persistChats(); renderMessages();
@@ -418,7 +421,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
       const message = error.message || "Could not reach AdizillaAI.";
       chat.messages.push({ role: "assistant", content: "I couldn't complete that request. " + message, isError: true }); persistChats(); renderMessages();
     } finally {
-      busy = false; $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
+      busy = false; activeChatController = null; $("sendBtn").textContent = "↑"; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
     }
   }
   function resizeInput() {
@@ -733,7 +736,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   };
   $("breadcrumbPage").addEventListener("click", renameBreadcrumb);
   $("breadcrumbPage").addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); renameBreadcrumb(); } });
-  $("chatForm").addEventListener("submit", e => { e.preventDefault(); sendMessage($("promptInput").value); });
+  $("chatForm").addEventListener("submit", e => { e.preventDefault(); if (busy) activeChatController?.abort(); else sendMessage($("promptInput").value); });
   $("promptInput").addEventListener("input", resizeInput);
   $("promptInput").addEventListener("focus", () => $("inputHint").classList.remove("hidden"));
   $("promptInput").addEventListener("blur", () => $("inputHint").classList.add("hidden"));

@@ -13,7 +13,7 @@
 
 ## Desktop preview
 
-![AdizillaAI desktop workspace, captured at 1440 × 1000](https://cdn.browser-use.com/screenshots/3f5e9263-c73d-41d0-a416-04a4555fa2c2/1.png)
+![AdizillaAI desktop workspace, captured at 1440 × 1000](https://cdn.browser-use.com/screenshots/7776f2f8-547c-467b-a373-d7a6e8a82f14/1.png)
 
 ## What it can do
 

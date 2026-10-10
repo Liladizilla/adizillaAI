@@ -297,7 +297,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   function makeMessage(message, index) {
     const row = document.createElement("article"); row.className = "message " + message.role;
     if (message.role === "assistant") {
-      const avatar = document.createElement("div"); avatar.className = "message-avatar"; avatar.textContent = "✳";
+      const avatar = document.createElement("div"); avatar.className = "message-avatar"; avatar.textContent = "a";
       const body = document.createElement("div"); body.className = "message-content"; body.innerHTML = renderText(message.content);
       const actions = document.createElement("div"); actions.className = "message-actions";
       const copy = document.createElement("button"); copy.textContent = "Copy response"; copy.addEventListener("click", async () => { try { await navigator.clipboard.writeText(message.content); copy.textContent = "Copied"; } catch { toast("Clipboard access isn't available in this browser."); } });

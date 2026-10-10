@@ -434,7 +434,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   function updateWelcomeGreeting() {
     const greeting = $("welcomeGreeting");
     if (!greeting) return;
-    const name = firebaseUser?.displayName?.trim()?.split(/\\s+/)[0];
+    const name = firebaseUser?.displayName?.trim()?.split(/\s+/)[0];
     const hour = new Date().getHours();
     const period = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
     greeting.textContent = name ? "Good " + period + ", " + name + ". What's on your mind?" : "What's on your mind?";

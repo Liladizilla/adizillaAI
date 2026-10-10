@@ -617,6 +617,47 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("clearMemory").addEventListener("click", () => { if (!save(KEYS.memory, "") || !save(KEYS.enabled, false)) return; memory = ""; memoryDraft = ""; memoryEnabled = false; syncMemoryUI(); $("settingsDialog").close(); toast("Saved memory cleared from this browser."); });
   $("attachInfo").addEventListener("click", () => $("attachmentInput").click());
   $("attachmentInput").addEventListener("change", async event => { await addAttachments(event.target.files); event.target.value = ""; });
+  $("createImageBtn").addEventListener("click", async () => {
+    await authInitialization;
+    if (!firebaseUser) { setAuthMode("signin"); openDialog("authDialog"); return; }
+    $("imageError").classList.add("hidden");
+    openDialog("imageDialog");
+  });
+  $("imageForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    await authInitialization;
+    if (!firebaseUser) { setAuthMode("signin"); openDialog("authDialog"); return; }
+    const prompt = $("imagePrompt").value.trim();
+    if (prompt.length < 3) return;
+    const button = $("generateImageSubmit");
+    const error = $("imageError");
+    const wrap = $("generatedImageWrap");
+    button.disabled = true;
+    button.textContent = "Creating…";
+    error.textContent = "";
+    error.classList.add("hidden");
+    wrap.classList.add("hidden");
+    try {
+      const token = await firebaseUser.getIdToken();
+      const response = await fetch("/api/images/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ prompt: prompt })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || "Image generation failed.");
+      $("generatedImage").src = data.image_url;
+      $("openGeneratedImage").href = data.image_url;
+      $("generatedImageModel").textContent = data.model || "AI-generated";
+      wrap.classList.remove("hidden");
+    } catch (err) {
+      error.textContent = err.message || "Could not generate that image.";
+      error.classList.remove("hidden");
+    } finally {
+      button.disabled = false;
+      button.textContent = "Generate image ↗";
+    }
+  });
   $("openSidebar").addEventListener("click", () => { $("sidebar").classList.add("open"); $("scrim").classList.add("show"); });
   $("closeSidebar").addEventListener("click", closeMobile); $("scrim").addEventListener("click", closeMobile);
   document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => btn.closest("dialog").close()));

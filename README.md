@@ -25,7 +25,7 @@
 - On-demand image generation through the xAI Imagine API, with an account-level limit of three images per UTC day.
 - Server-side per-account chat limits, defaulting to 20 requests per UTC day and 5 per minute.
 - A configurable OpenAI-compatible API provider, with credentials kept on the server.
-- A clearly labelled Pro preview. Billing and paid-plan entitlements are not active.
+- RevenueCat Web Billing integration for the Pro paywall and the `adizilla_ai_pro` entitlement (requires a configured Web Billing public key, products, and current Offering).
 
 ## Run locally
 
@@ -93,7 +93,7 @@ The server enforces limits through Firestore counters:
 - `DAILY_CHAT_LIMIT`: defaults to 20 requests per user per UTC day.
 - `MINUTE_CHAT_LIMIT`: defaults to 5 requests per user per minute.
 
-If Firestore is unavailable, chat requests fail closed with HTTP 503 rather than bypassing usage protection. These request caps are basic abuse controls, **not** a fixed-cost guarantee: token-level metering, subscription entitlements, and billing are not implemented.
+If Firestore is unavailable, chat requests fail closed with HTTP 503 rather than bypassing usage protection. These request caps are basic abuse controls, **not** a fixed-cost guarantee: token-level metering and server-side subscription entitlement enforcement are not implemented.
 
 ## Attachments
 
@@ -110,7 +110,7 @@ PDFs are processed by extracting text; scanned PDFs without a text layer may not
 - Signed-in conversation history syncs through authenticated API routes. The API derives the storage owner from the verified Firebase ID token, not a user ID supplied by the browser.
 - Cloud history is limited to 100 conversations per account and up to 40 recent messages per conversation. Export important chats as a backup.
 - Saved memory remains local to the browser and does not sync between devices.
-- The Pro screen is a product preview only. There is no payment processing, paid access control, or subscription management.
+- Client-side RevenueCat checkout is integrated, but server-side paid-access enforcement and subscription lifecycle webhooks still need to be configured before paid features are unlocked.
 - Web search, account deletion, long-term synced memory, and token-based cost metering are not implemented.
 - Recent chat context and any attachments are sent to the configured AI provider. Review that provider's privacy terms before using real user data.
 

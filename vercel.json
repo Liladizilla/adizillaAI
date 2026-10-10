@@ -4,5 +4,6 @@
     "app.py": {
       "includeFiles": "web/**"
     }
-  }
+  },
+  "buildCommand": "npm install --include=dev && npm run build:revenuecat"
 }

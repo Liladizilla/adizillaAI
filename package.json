@@ -1,0 +1,14 @@
+{
+  "name": "adizillaai-web",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build:revenuecat": "vite build"
+  },
+  "dependencies": {
+    "@revenuecat/purchases-js": "^1.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

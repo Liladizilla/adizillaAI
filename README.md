@@ -6,6 +6,15 @@
 - **Source:** https://github.com/Liladizilla/adizillaAI
 - **Stack:** Python · FastAPI · vanilla JavaScript · Firebase Authentication · Firestore · Vercel
 
+
+<p align="center">
+  <a href="https://adizillaai.vercel.app"><strong>Open the live app ↗</strong></a>
+</p>
+
+## Desktop preview
+
+![AdizillaAI desktop workspace, captured at 1440 × 1000](https://cdn.browser-use.com/screenshots/3f5e9263-c73d-41d0-a416-04a4555fa2c2/1.png)
+
 ## What it can do
 
 - Responsive dark-first workspace with a light theme, recent conversations, search, export, and response copying.

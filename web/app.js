@@ -440,7 +440,12 @@ let sendPasswordResetEmail, signOut, updateProfile;
       if (error.name !== "AbortError") {
         const message = error.message || "Could not reach AdizillaAI.";
         $("promptInput").value = content; resizeInput();
-        chat.messages.push({ role: "assistant", content: "That one did not go through. Your message is still in the composer. Try again when ready. " + message, isError: true, retryContent: attachments.length ? null : content }); persistChats(); renderMessages();
+        // Keep attachments available after a failed request so users do not have to select them again.
+        if (attachments.length) {
+          pendingAttachments = [...attachments, ...pendingAttachments].slice(0, 4);
+          renderAttachments();
+        }
+        chat.messages.push({ role: "assistant", content: "That request did not go through. Your message" + (attachments.length ? " and attachments are" : " is") + " back in the composer. Check the error below, then try again. " + message, isError: true, retryContent: attachments.length ? null : content }); persistChats(); renderMessages();
       }
     } finally {
       busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ti ti-arrow-up" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();

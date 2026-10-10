@@ -71,7 +71,7 @@ def require_firebase_user(authorization: str | None = Header(default=None)):
 @app.get("/api/auth/config")
 def auth_config():
     config = firebase_web_config()
-    configured = bool(config["apiKey"] and config["authDomain"] and config["projectId"] and config["appId"])
+    configured = bool(config.get("apiKey") and config.get("authDomain") and config.get("projectId") and config.get("appId"))
     return {"configured": configured, "firebase": config if configured else None}
 
 

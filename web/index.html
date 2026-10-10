@@ -67,7 +67,7 @@
         <div class="composer-zone">
           <form id="chatForm" class="composer">
             <textarea id="promptInput" rows="1" maxlength="12000" placeholder="Ask anything. Start somewhere…" aria-label="Message AdizillaAI"></textarea>
-            <div id="attachmentList" class="attachment-list hidden" aria-live="polite"></div><div class="composer-footer"><div class="composer-tools"><button type="button" class="tool-btn" id="memoryChip" title="Manage memory"><span>✧</span> <span id="memoryChipText">Memory off</span></button><span class="tool-separator"></span><button type="button" class="tool-btn" id="attachInfo" title="Attach images or documents">＋ <span>Attach</span></button><input id="attachmentInput" class="hidden" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.tsv,.json,.xml,.py,.js,.ts,.jsx,.tsx,.html,.css,.java,.c,.h,.cpp,.rs,.sh,.yaml,.yml,.toml,.log"><span class="attachment-count" id="attachmentCount" aria-live="polite"></span></div><div class="send-area"><span class="input-hint">Enter to send · Shift + Enter for new line</span><button type="submit" id="sendBtn" class="send-btn" aria-label="Send message"><span>↑</span></button></div></div>
+            <div id="attachmentList" class="attachment-list hidden" aria-live="polite"></div><div class="composer-footer"><div class="composer-tools"><button type="button" class="tool-btn" id="memoryChip" title="Manage memory"><span>✧</span> <span id="memoryChipText">Memory off</span></button><span class="tool-separator"></span><button type="button" class="tool-btn" id="attachInfo" title="Attach images or documents">＋ <span>Attach</span></button><input id="attachmentInput" class="hidden" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.tsv,.json,.xml,.py,.js,.ts,.jsx,.tsx,.html,.css,.java,.c,.h,.cpp,.rs,.sh,.yaml,.yml,.toml,.log"><span class="attachment-count" id="attachmentCount" aria-live="polite"></span><button type="button" class="tool-btn image-create-btn" id="createImageBtn">✧ <span>Create image</span></button></div><div class="send-area"><span class="input-hint">Enter to send · Shift + Enter for new line</span><button type="submit" id="sendBtn" class="send-btn" aria-label="Send message"><span>↑</span></button></div></div>
           </form>
           <p class="disclaimer">AdizillaAI can make mistakes. Check important information. <span>Built for curious minds.</span></p>
         </div>
@@ -111,6 +111,22 @@
   </dialog>
   <dialog id="upgradeDialog" class="modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">THE NEXT CHAPTER</div><h2>Make room for<br><em>bigger ideas.</em></h2><p>Adizilla Pro is being prepared. These plans are a product preview, not an active payment flow.</p><div class="pricing-grid"><div class="price-card"><span>FREE</span><h3>$0<small> / forever</small></h3><p>Everyday AI chat</p><ul><li>Synced chat history</li><li>Basic saved memory</li><li>Provider free-tier limits</li></ul><button class="secondary-btn" data-close>Current plan</button></div><div class="price-card featured"><span>✦ ADIZILLA PRO</span><h3>Coming soon</h3><p>For your bigger workflows</p><ul><li>Long-term synced memory</li><li>Higher message limits</li><li>File & document tools</li><li>Advanced models and research</li><li>Export, folders & custom assistants</li></ul><button class="primary-btn" id="notifyUpgrade">Join the launch list</button></div></div><p class="modal-footnote">Premium features will need accounts, server-side plan checks, secure storage, and billing before launch.</p></dialog>
   <dialog id="settingsDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">PREFERENCES</div><h2>Your workspace.</h2><p>Your conversations sync to your signed-in account. Memory remains local to this browser for now.</p><button class="secondary-btn full-btn" id="clearChats">Delete all local conversations</button><button class="secondary-btn full-btn" id="clearMemory">Clear saved memory</button><p class="modal-footnote">Deleting all conversations also removes their cloud copies for this account. Saved memory is only stored on this device.</p></dialog>
+  <dialog id="imageDialog" class="modal image-modal">
+    <button class="modal-close" data-close aria-label="Close">×</button>
+    <div class="modal-eyebrow">ADIZILLA IMAGINE</div>
+    <h2>Make an idea <em>visible.</em></h2>
+    <p>Describe the image you want. Image generation uses the configured image provider and may incur API charges.</p>
+    <form id="imageForm" class="image-form">
+      <label for="imagePrompt">Image prompt</label>
+      <textarea id="imagePrompt" rows="4" maxlength="2000" required placeholder="A cinematic 3D render of a futuristic obsidian-and-violet AI emblem, studio lighting, premium materials…"></textarea>
+      <div class="image-form-footer"><small>Up to 3 generated images per account per day.</small><button class="primary-btn" id="generateImageSubmit" type="submit">Generate image ↗</button></div>
+    </form>
+    <p id="imageError" class="auth-error hidden" role="alert"></p>
+    <div id="generatedImageWrap" class="generated-image-wrap hidden">
+      <img id="generatedImage" alt="AI-generated artwork">
+      <div class="generated-image-footer"><span id="generatedImageModel"></span><a id="openGeneratedImage" target="_blank" rel="noopener noreferrer">Open full image ↗</a></div>
+    </div>
+  </dialog>
   <dialog id="infoDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">IN THE WORKS</div><h2 id="infoTitle">Coming soon</h2><p id="infoText">This feature is not connected yet.</p><button class="primary-btn full-btn" data-close>Got it</button></dialog>
   <script type="module" src="/assets/app.js"></script>
 </body>

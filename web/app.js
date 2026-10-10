@@ -20,6 +20,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   let cloudSyncStatus = "Local device";
   let cloudSyncTimer = null;
   let cloudSyncRunning = false;
+  let cloudSyncAgain = false;
   const deletedChatsKey = "adizilla.deleted-cloud-chats.v1";
   const panels = { chat: $("chatPanel"), memory: $("memoryPanel"), library: $("libraryPanel") };
   function scopedKey(key) { return firebaseUser ? key.replace("adizilla.", "adizilla.user." + firebaseUser.uid + ".") : key; }
@@ -47,7 +48,8 @@ let sendPasswordResetEmail, signOut, updateProfile;
     return data;
   }
   function scheduleCloudSync() {
-    if (!firebaseUser || cloudSyncRunning) return;
+    if (!firebaseUser) return;
+    if (cloudSyncRunning) { cloudSyncAgain = true; return; }
     clearTimeout(cloudSyncTimer);
     cloudSyncTimer = setTimeout(() => syncCloudChats().catch(() => {
       cloudSyncStatus = "Cloud sync paused";
@@ -86,20 +88,26 @@ let sendPasswordResetEmail, signOut, updateProfile;
       for (const chat of merged) {
         if (!listing.chats?.some(item => item.id === chat.id)) await uploadChat(chat);
       }
-      chats = merged.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0)).slice(0, 100);
-      save(KEYS.chats, chats);
-      currentId = chats.some(chat => chat.id === currentId) ? currentId : null;
-      renderHistory();
-      renderMessages();
-      renderLibrary();
-      cloudSyncStatus = "Cloud sync on";
-      renderAccount();
+      if (!cloudSyncAgain) {
+        chats = merged.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0)).slice(0, 100);
+        save(KEYS.chats, chats);
+        currentId = chats.some(chat => chat.id === currentId) ? currentId : null;
+        renderHistory();
+        renderMessages();
+        renderLibrary();
+        cloudSyncStatus = "Cloud sync on";
+        renderAccount();
+      }
     } catch (error) {
       cloudSyncStatus = "Cloud sync paused";
       renderAccount();
       throw error;
     } finally {
       cloudSyncRunning = false;
+      if (cloudSyncAgain && firebaseUser) {
+        cloudSyncAgain = false;
+        scheduleCloudSync();
+      }
     }
   }
   async function uploadChat(chat) {

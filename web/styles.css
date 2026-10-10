@@ -129,3 +129,19 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 @media(max-width:760px){.sidebar{padding:18px 12px max(12px,env(safe-area-inset-bottom))}.topbar{padding:0 14px;min-height:56px}.breadcrumb{max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.model-picker{max-width:128px;font-size:12px}.welcome{width:calc(100% - 32px);padding:clamp(36px,8vh,76px) 0 20px}.welcome h1{letter-spacing:-.8px}.composer-zone{width:calc(100% - 20px)}.composer{padding:10px;border-radius:16px}.composer-tools{flex-wrap:wrap}.tool-btn{min-height:44px}.send-btn{width:44px;height:44px}.suggestion{min-height:48px}.disclaimer{font-size:12px}}
 @media(max-height:650px){.sidebar{padding-top:12px;padding-bottom:8px}.brand-row{padding-bottom:16px}.side-section{margin-top:14px}.history-wrap{margin-top:10px}.sidebar-bottom{margin-top:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+.desktop-collapse{display:inline-grid;place-items:center;flex:0 0 30px;width:30px;height:30px;font-size:16px;margin-left:-4px}
+.brand-row{gap:8px}
+.sidebar.collapsed{width:56px;flex-basis:56px;padding-left:8px;padding-right:8px}
+.sidebar.collapsed .brand-row{padding:0 0 22px;justify-content:center;flex-wrap:wrap}
+.sidebar.collapsed .brand-copy,.sidebar.collapsed .new-chat{font-size:0;gap:0}
+.sidebar.collapsed .brand-copy,.sidebar.collapsed .section-heading span,.sidebar.collapsed .section-heading button,.sidebar.collapsed .nav-item:not(.active),.sidebar.collapsed .nav-item .nav-end,.sidebar.collapsed .history-wrap,.sidebar.collapsed .account-row-copy,.sidebar.collapsed .account-row-end{display:none!important}
+.sidebar.collapsed .desktop-collapse{order:2;margin:4px 0 0}
+.sidebar.collapsed .brand-mark{margin:auto}
+.sidebar.collapsed .new-chat{display:grid;place-items:center;padding:10px 0;font-size:0}
+.sidebar.collapsed .new-chat .plus{font-size:20px}
+.sidebar.collapsed .side-section{margin-top:14px}
+.sidebar.collapsed .nav-item{justify-content:center;padding:12px 0;font-size:0}
+.sidebar.collapsed .nav-icon{font-size:17px}
+.sidebar.collapsed .account-cta{justify-content:center;padding:8px 0}
+@media(max-width:760px){.desktop-collapse{display:none!important}.sidebar.collapsed{width:270px;flex-basis:270px}.sidebar.collapsed .brand-copy,.sidebar.collapsed .new-chat,.sidebar.collapsed .section-heading span,.sidebar.collapsed .section-heading button,.sidebar.collapsed .nav-item:not(.active),.sidebar.collapsed .nav-item .nav-end,.sidebar.collapsed .history-wrap,.sidebar.collapsed .account-row-copy,.sidebar.collapsed .account-row-end{display:initial!important}.sidebar.collapsed .brand-row{justify-content:flex-start;flex-wrap:nowrap}.sidebar.collapsed .new-chat{display:flex;font-size:14px}.sidebar.collapsed .nav-item{justify-content:flex-start;font-size:14px;padding:10px 12px}.sidebar.collapsed .account-cta{justify-content:flex-start;padding:10px 8px}}

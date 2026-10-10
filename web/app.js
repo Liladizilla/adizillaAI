@@ -15,6 +15,8 @@ let sendPasswordResetEmail, signOut, updateProfile;
   let theme = read(KEYS.theme, "dark");
   let firebaseAuth = null;
   let firebaseUser = null;
+  let revenueCatStatus = { isPro: false, loading: false, error: null };
+  let revenueCatModulePromise = null;
   let firebaseReady = false;
   let authMode = "signin";
   let authInitialization = Promise.resolve(false);
@@ -444,6 +446,79 @@ let sendPasswordResetEmail, signOut, updateProfile;
     $("profileSub").textContent = signedIn ? (firebaseUser.email || "Signed in") + " · " + cloudSyncStatus : "Local device · no account";
     $("profileAvatar").textContent = signedIn ? (firebaseUser.displayName || firebaseUser.email || "A").trim().charAt(0).toUpperCase() : "G";
     if (signedIn) $("authSignedInEmail").textContent = firebaseUser.email || firebaseUser.displayName || "Signed-in account";
+    renderSubscriptionStatus();
+  }
+  function loadRevenueCat() {
+    if (!revenueCatModulePromise) revenueCatModulePromise = import("/assets/revenuecat.js");
+    return revenueCatModulePromise;
+  }
+  function renderSubscriptionStatus() {
+    const status = $("subscriptionStatus");
+    if (!status) return;
+    status.textContent = revenueCatStatus.loading ? "Checking plan…" :
+      revenueCatStatus.isPro ? "AdizillaAI Pro active" :
+      revenueCatStatus.error ? "Subscription status unavailable" :
+      firebaseUser ? "Free plan" : "Sign in to manage your plan";
+    status.dataset.pro = String(revenueCatStatus.isPro);
+  }
+  async function refreshRevenueCatStatus(user = firebaseUser) {
+    if (!user) {
+      revenueCatStatus = { isPro: false, loading: false, error: null };
+      document.documentElement.dataset.adizillaPro = "false";
+      renderSubscriptionStatus();
+      return revenueCatStatus;
+    }
+    revenueCatStatus = { ...revenueCatStatus, loading: true, error: null };
+    renderSubscriptionStatus();
+    try {
+      const rc = await loadRevenueCat();
+      const result = await rc.getSubscriptionStatus(user);
+      revenueCatStatus = { isPro: result.isPro, loading: false, error: null };
+      document.documentElement.dataset.adizillaPro = String(result.isPro);
+      renderSubscriptionStatus();
+      return result;
+    } catch (error) {
+      console.error("RevenueCat status check failed:", error);
+      revenueCatStatus = { isPro: false, loading: false, error };
+      document.documentElement.dataset.adizillaPro = "false";
+      renderSubscriptionStatus();
+      return { customerInfo: null, isPro: false, error };
+    }
+  }
+  async function openRevenueCatPaywall() {
+    await authInitialization;
+    if (!firebaseUser) {
+      setAuthMode("signin");
+      openDialog("authDialog");
+      return;
+    }
+    const message = $("subscriptionMessage");
+    const target = $("revenuecatPaywall");
+    const button = $("upgradeTop");
+    if (message) { message.textContent = ""; message.classList.add("hidden"); }
+    if (target) target.replaceChildren();
+    openDialog("upgradeDialog");
+    if (button) button.disabled = true;
+    try {
+      const rc = await loadRevenueCat();
+      const result = await rc.showRevenueCatPaywall(firebaseUser, target);
+      revenueCatStatus = { isPro: result.isPro, loading: false, error: null };
+      document.documentElement.dataset.adizillaPro = String(result.isPro);
+      renderSubscriptionStatus();
+      if (message) {
+        message.textContent = result.isPro ? "AdizillaAI Pro is active on this account." :
+          "Checkout closed. No active Pro entitlement was found.";
+        message.classList.remove("hidden");
+      }
+    } catch (error) {
+      console.error("RevenueCat paywall failed:", error);
+      if (message) {
+        message.textContent = error?.message || "Billing could not be loaded. Check the RevenueCat Web Billing configuration and try again.";
+        message.classList.remove("hidden");
+      }
+    } finally {
+      if (button) button.disabled = false;
+    }
   }
   function reloadWorkspaceForCurrentUser() {
     chats = read(KEYS.chats, []);
@@ -489,6 +564,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
           renderAccount();
           if (previousUid !== (user?.uid || null)) {
             cloudSyncStatus = user ? "Syncing cloud history…" : "Local device";
+            refreshRevenueCatStatus(user);
             reloadWorkspaceForCurrentUser();
             if (user) syncCloudChats().catch(() => {
               cloudSyncStatus = "Cloud sync paused";
@@ -610,8 +686,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("searchChats").addEventListener("input", e => renderHistory(e.target.value));
   $("exportChats").addEventListener("click", exportChats);
   $("themeBtn").addEventListener("click", () => { theme = theme === "dark" ? "light" : "dark"; document.body.classList.toggle("light-mode", theme === "light"); save(KEYS.theme, theme); });
-  $("upgradeSide").addEventListener("click", () => openDialog("upgradeDialog")); $("upgradeTop").addEventListener("click", () => openDialog("upgradeDialog"));
-  $("notifyUpgrade").addEventListener("click", () => { $("upgradeDialog").close(); toast("Launch notifications are not connected yet. Premium billing and account infrastructure must be added before sign-ups can be collected."); });
+  $("upgradeSide").addEventListener("click", openRevenueCatPaywall); $("upgradeTop").addEventListener("click", openRevenueCatPaywall);
   $("settingsBtn").addEventListener("click", () => openDialog("settingsDialog"));
   $("clearChats").addEventListener("click", () => { chats.forEach(chat => markCloudChatDeleted(chat.id)); chats = []; currentId = null; persistChats(); renderMessages(); $("settingsDialog").close(); });
   $("clearMemory").addEventListener("click", () => { if (!save(KEYS.memory, "") || !save(KEYS.enabled, false)) return; memory = ""; memoryDraft = ""; memoryEnabled = false; syncMemoryUI(); $("settingsDialog").close(); toast("Saved memory cleared from this browser."); });

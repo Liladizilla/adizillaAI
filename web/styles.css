@@ -110,8 +110,8 @@
 .billing-modal{width:min(760px,calc(100vw - 28px));max-height:88vh;overflow:auto}.subscription-status{display:inline-flex;align-items:center;margin:8px 0 16px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;color:var(--soft);font-size:11px}.subscription-status[data-pro="true"]{border-color:#7560a9;color:#d7c8ff;background:#282139}.revenuecat-paywall{width:100%;min-height:160px}.billing-message{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:12px;line-height:1.5;color:var(--soft)}.billing-modal .modal-footnote{margin-top:16px}
 
 /* Phase 1: Savanna Night */
-:root{color-scheme:dark;--bg:#0F1311;--sidebar:#0B0F0D;--panel:#161C19;--panel2:#1D2521;--line:#28322D;--text:#ECF1EC;--muted:#9AA8A0;--soft:#C7D0C9;--accent:#E8B04B;--on-accent:#1A1405;--danger:#E5675A;--font:"Hanken Grotesk",system-ui,sans-serif;--display:"Bricolage Grotesque",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;--shadow:none}
-body.light-mode{color-scheme:light;--bg:#F7F3EC;--sidebar:#EFE9DD;--panel:#FCFAF6;--panel2:#F1ECE1;--line:#E1D9C9;--text:#1F1B16;--muted:#655D52;--soft:#514A40;--accent:#1E6B53;--on-accent:#FFFFFF;--danger:#B4392D}
+:root{color-scheme:dark;--bg:#0F1311;--sidebar:#0B0F0D;--panel:#161C19;--panel2:#1D2521;--line:#28322D;--text:#ECF1EC;--muted:#9AA8A0;--soft:#C7D0C9;--accent:#E8B04B;--on-accent:#1A1405;--danger:#E5675A;--control-border:#657269;--font:"Hanken Grotesk",system-ui,sans-serif;--display:"Bricolage Grotesque",system-ui,sans-serif;--mono:"JetBrains Mono",ui-monospace,monospace;--shadow:none}
+body.light-mode{color-scheme:light;--bg:#F7F3EC;--sidebar:#EFE9DD;--panel:#FCFAF6;--panel2:#F1ECE1;--line:#E1D9C9;--text:#1F1B16;--muted:#655D52;--soft:#514A40;--accent:#1E6B53;--on-accent:#FFFFFF;--danger:#B4392D;--control-border:#8A8173}
 html,body{background:var(--bg);color:var(--text);font-family:var(--font)}button,textarea,input,select{font:inherit}
 button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 *{scrollbar-width:thin;scrollbar-color:transparent transparent}*::-webkit-scrollbar{width:6px;height:6px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 42%,transparent);border-radius:6px}*::-webkit-scrollbar-button{display:none;width:0;height:0}
@@ -187,3 +187,8 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 .auth-error{color:var(--danger);background:var(--panel2);border-color:var(--line)}
 .typing span{display:none}
 @media(max-width:760px){.send-btn{width:44px;height:44px}.tool-btn{min-height:44px}.input-hint{font-size:12px}}
+
+/* Strong neutral outlines meet 3:1 non-text contrast on the adjacent UI surfaces. */
+.new-chat,.model-picker,.composer,.composer:focus-within,.auth-form input,.image-form textarea,.search-chats,.secondary-btn,.memory-card,.library-card,.notice,.modal,.memory-text,.account-cta:hover{border-color:var(--control-border)}
+.suggestion-list,.suggestion{border-color:var(--line)}
+button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}

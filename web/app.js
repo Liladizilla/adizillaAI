@@ -419,7 +419,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const chat = activeChat(); chat.messages.push({ role: "user", content: displayContent });
     if (chat.messages.filter(m => m.role === "user").length === 1) chat.title = content.slice(0, 48) + (content.length > 48 ? "…" : "");
     chat.updatedAt = Date.now(); persistChats(); renderMessages(); $("promptInput").value = ""; resizeInput();
-    busy = true; $("sendBtn").disabled = true; $("sendBtn").textContent = "Stop"; $("sendBtn").setAttribute("aria-label", "Stop generating"); $("typing").textContent = "Reading your message…"; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
+    busy = true; $("sendBtn").disabled = false; $("sendBtn").textContent = "Stop"; $("sendBtn").setAttribute("aria-label", "Stop generating"); $("typing").textContent = "Reading your message…"; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
     activeChatController = new AbortController();
     try {
       const recent = chat.messages.filter(m => !m.isError).slice(-24).map(m => ({ role: m.role, content: m.content }));

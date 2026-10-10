@@ -12,7 +12,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   let currentId = null;
   let busy = false;
   let pendingAttachments = [];
-  let theme = read(KEYS.theme, "dark");
+  let theme = read(KEYS.theme, "system");
   let firebaseAuth = null;
   let firebaseUser = null;
   let revenueCatStatus = { isPro: false, loading: false, error: null };
@@ -408,12 +408,47 @@ let sendPasswordResetEmail, signOut, updateProfile;
       busy = false; $("sendBtn").disabled = false; $("typing").classList.add("hidden"); $("promptInput").focus();
     }
   }
-  function resizeInput() { const input = $("promptInput"); input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 180) + "px"; }
+  function resizeInput() {
+    const input = $("promptInput");
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 192) + "px";
+    input.style.overflowY = input.scrollHeight > 192 ? "auto" : "hidden";
+    updateSendState();
+  }
+  function updateSendState() {
+    const input = $("promptInput"), send = $("sendBtn");
+    if (send) send.disabled = !busy && !input.value.trim() && pendingAttachments.length === 0;
+  }
+  function applyTheme(next = theme) {
+    theme = next;
+    const effective = next === "system" ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : next;
+    document.body.classList.toggle("light-mode", effective === "light");
+    document.documentElement.dataset.theme = effective;
+    $("themeBtn").title = "Theme: " + next + ". Select to change.";
+    $("themeBtn").setAttribute("aria-label", "Theme: " + next);
+  }
+  function updateWelcomeGreeting() {
+    const greeting = $("welcomeGreeting");
+    if (!greeting) return;
+    const name = firebaseUser?.displayName?.trim()?.split(/\\s+/)[0];
+    const hour = Number(new Intl.DateTimeFormat("en-GB", { hour:"2-digit", hour12:false, timeZone:"Africa/Nairobi" }).format(new Date()));
+    const period = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+    greeting.textContent = name ? "Good " + period + ", " + name + ". What's on your mind?" : "What's on your mind?";
+  }
   function openDialog(id) { const dialog = $(id); if (dialog && !dialog.open) dialog.showModal(); }
   function closeMobile() { $("sidebar").classList.remove("open"); $("scrim").classList.remove("show"); }
   async function checkHealth() {
-    try { const res = await fetch("/api/health"); const data = await res.json(); const pill = document.querySelector(".provider-pill"); pill.classList.toggle("online", data.provider_configured); pill.classList.toggle("offline", !data.provider_configured); $("providerStatus").textContent = data.provider_configured ? (data.provider || "AI") + " ready" : "API key needed"; }
-    catch { document.querySelector(".provider-pill").classList.add("offline"); $("providerStatus").textContent = "Backend unavailable"; }
+    const pill = document.querySelector(".provider-pill");
+    try {
+      const res = await fetch("/api/health");
+      const data = await res.json();
+      const failed = !res.ok || !data.provider_configured;
+      pill.classList.toggle("hidden", !failed);
+      $("providerStatus").textContent = "Reconnecting…";
+    } catch {
+      pill.classList.remove("hidden");
+      $("providerStatus").textContent = "Reconnecting…";
+    }
   }
   function setAuthError(message) {
     const error = $("authError");
@@ -440,12 +475,12 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   function renderAccount() {
     const signedIn = Boolean(firebaseUser);
-    $("accountActionTitle").textContent = signedIn ? "Account settings" : "Sign in or create account";
-    $("accountActionSub").textContent = signedIn ? cloudSyncStatus : (firebaseReady ? "Your personal workspace" : "Account setup required");
-    $("profileName").textContent = signedIn ? (firebaseUser.displayName || "Your account") : "Guest workspace";
-    $("profileSub").textContent = signedIn ? (firebaseUser.email || "Signed in") + " · " + cloudSyncStatus : "Local device · no account";
+    $("accountActionTitle").textContent = signedIn ? "Account menu" : "Sign in";
+    $("profileName").textContent = signedIn ? (firebaseUser.displayName || "Your account") : "Guest";
     $("profileAvatar").textContent = signedIn ? (firebaseUser.displayName || firebaseUser.email || "A").trim().charAt(0).toUpperCase() : "G";
+    $("accountBtn").title = signedIn ? "Account menu, settings, upgrade and sign out" : "Sign in or create an account";
     if (signedIn) $("authSignedInEmail").textContent = firebaseUser.email || firebaseUser.displayName || "Signed-in account";
+    updateWelcomeGreeting();
     renderSubscriptionStatus();
   }
   function loadRevenueCat() {
@@ -599,8 +634,8 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   $("accountBtn").addEventListener("click", async () => {
     await authInitialization;
-    setAuthMode(firebaseUser ? "signin" : "signin");
-    openDialog("authDialog");
+    if (firebaseUser) openDialog("settingsDialog");
+    else { setAuthMode("signin"); openDialog("authDialog"); }
   });
   $("authSwitchBtn").addEventListener("click", () => setAuthMode(authMode === "signup" ? "signin" : "signup"));
   $("authForm").addEventListener("submit", async event => {
@@ -675,18 +710,29 @@ let sendPasswordResetEmail, signOut, updateProfile;
   document.querySelectorAll("[data-panel]").forEach(btn => btn.addEventListener("click", () => showPanel(btn.dataset.panel)));
   $("newChat").addEventListener("click", newChat);
   $("chatForm").addEventListener("submit", e => { e.preventDefault(); sendMessage($("promptInput").value); });
-  $("promptInput").addEventListener("input", resizeInput);
+  $("promptInput").addEventListener("input", resizeInput);\n  $("promptInput").addEventListener("focus", () => $("inputHint").classList.remove("hidden"));\n  $("promptInput").addEventListener("blur", () => $("inputHint").classList.add("hidden"));
   $("promptInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("chatForm").requestSubmit(); } });
-  document.querySelectorAll("[data-prompt]").forEach(btn => btn.addEventListener("click", () => { $("promptInput").value = btn.dataset.prompt; resizeInput(); $("promptInput").focus(); }));
+  document.querySelectorAll("[data-prompt]").forEach(btn => btn.addEventListener("click", () => {
+    const input = $("promptInput");
+    input.value = btn.dataset.prompt; resizeInput(); input.focus();
+    const start = input.value.indexOf("[");
+    const end = input.value.indexOf("]", start);
+    if (start >= 0 && end > start) input.setSelectionRange(start + 1, end);
+  }));
   $("memoryChip").addEventListener("click", () => showPanel("memory"));
+  $("modelPicker").addEventListener("change", () => {
+    const label = $("modelPicker").selectedOptions[0]?.textContent || "Adizilla Fast";
+    toast(label + " is a display preset only right now. The configured AI provider remains unchanged.");
+  });
   $("memoryText").addEventListener("input", () => { memoryDraft = $("memoryText").value; $("memoryLength").textContent = memoryDraft.length + " / 3000"; });
   $("saveMemory").addEventListener("click", saveMemory);
   $("memoryEnabled").addEventListener("change", () => { const next = $("memoryEnabled").checked; if (save(KEYS.enabled, next)) { memoryEnabled = next; syncMemoryUI(); } else { $("memoryEnabled").checked = memoryEnabled; } });
   $("searchToggle").addEventListener("click", () => { $("searchChats").classList.toggle("hidden"); if (!$("searchChats").classList.contains("hidden")) $("searchChats").focus(); else { $("searchChats").value = ""; renderHistory(); } });
   $("searchChats").addEventListener("input", e => renderHistory(e.target.value));
   $("exportChats").addEventListener("click", exportChats);
-  $("themeBtn").addEventListener("click", () => { theme = theme === "dark" ? "light" : "dark"; document.body.classList.toggle("light-mode", theme === "light"); save(KEYS.theme, theme); });
-  $("upgradeSide").addEventListener("click", openRevenueCatPaywall); $("upgradeTop").addEventListener("click", openRevenueCatPaywall);
+  $("themeBtn").addEventListener("click", () => { theme = theme === "dark" ? "light" : theme === "light" ? "system" : "dark"; applyTheme(theme); save(KEYS.theme, theme); });
+  $("accountUpgradeBtn").addEventListener("click", openRevenueCatPaywall);
+  $("settingsOpenAuth").addEventListener("click", async () => { $("settingsDialog").close(); await authInitialization; setAuthMode("signin"); openDialog("authDialog"); });
   $("settingsBtn").addEventListener("click", () => openDialog("settingsDialog"));
   $("clearChats").addEventListener("click", () => { chats.forEach(chat => markCloudChatDeleted(chat.id)); chats = []; currentId = null; persistChats(); renderMessages(); $("settingsDialog").close(); });
   $("clearMemory").addEventListener("click", () => { if (!save(KEYS.memory, "") || !save(KEYS.enabled, false)) return; memory = ""; memoryDraft = ""; memoryEnabled = false; syncMemoryUI(); $("settingsDialog").close(); toast("Saved memory cleared from this browser."); });
@@ -738,8 +784,14 @@ let sendPasswordResetEmail, signOut, updateProfile;
   document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => btn.closest("dialog").close()));
   document.querySelectorAll("dialog").forEach(dialog => dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); }));
   document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); newChat(); } if ((e.metaKey || e.ctrlKey) && e.key === "1") { e.preventDefault(); showPanel("chat"); } });
-  document.body.classList.toggle("light-mode", theme === "light");
-  syncMemoryUI(); renderHistory(); renderMessages(); renderLibrary(); checkHealth();
+  applyTheme(theme); updateWelcomeGreeting();
+  $("promptInput").addEventListener("paste", event => { const files = [...(event.clipboardData?.files || [])]; if (files.length) addAttachments(files); });
+  $("chatForm").addEventListener("dragover", event => { event.preventDefault(); $("chatForm").classList.add("drag-over"); });
+  $("chatForm").addEventListener("dragleave", event => { if (!event.relatedTarget || !$("chatForm").contains(event.relatedTarget)) $("chatForm").classList.remove("drag-over"); });
+  $("chatForm").addEventListener("drop", async event => { event.preventDefault(); $("chatForm").classList.remove("drag-over"); if (event.dataTransfer?.files?.length) await addAttachments(event.dataTransfer.files); });
+  $("createImageBtn").addEventListener("click", () => $("createImageBtn").setAttribute("aria-pressed", "true"));
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener?.("change", () => { if (theme === "system") applyTheme("system"); });
+  syncMemoryUI(); renderHistory(); renderMessages(); renderLibrary(); updateSendState(); checkHealth();
   authInitialization = initializeFirebaseAuth();
   if (!chats.length) { /* The welcome screen is the intentional first-run state. */ } else { currentId = null; }
 })();

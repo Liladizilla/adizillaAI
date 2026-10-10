@@ -78,3 +78,14 @@
 .light-mode .auth-error { color:#9a2638; background:#fceff1; border-color:#e8b8c0; }
 .light-mode .google-auth-btn { background:#f8f6fb; }
 @media(max-width:520px) { .auth-modal { padding:24px 19px; } .auth-foot { line-height:1.8; } }
+
+/* File attachments */
+.attachment-list{display:flex;flex-wrap:wrap;gap:8px;padding:0 4px 10px}
+.attachment-chip{display:flex;align-items:center;gap:9px;max-width:240px;padding:7px 10px;border:1px solid #40394f;border-radius:9px;background:#211e2b;color:#e4def4;font-size:11px}
+.attachment-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}
+.attachment-chip button{border:0;background:transparent;color:#bdb2d8;font-size:16px;padding:0 1px}
+.attachment-chip button:hover{color:#fff}
+.attachment-count{font-size:10px;color:var(--muted);white-space:nowrap}
+#attachInfo{cursor:pointer}
+#attachInfo:hover{color:var(--accent)}
+.light-mode .attachment-chip{background:#f3efff;border-color:#d8ccef;color:#3b3153}

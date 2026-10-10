@@ -3,13 +3,14 @@
   const KEYS = { chats: "adizilla.chats.v1", memory: "adizilla.memory.v1", enabled: "adizilla.memory-enabled.v1", theme: "adizilla.theme.v1" };
   let chats = read(KEYS.chats, []);
   let memory = read(KEYS.memory, "");
+  let memoryDraft = memory;
   let memoryEnabled = read(KEYS.enabled, false);
   let currentId = null;
   let busy = false;
   let theme = read(KEYS.theme, "dark");
   const panels = { chat: $("chatPanel"), memory: $("memoryPanel"), library: $("libraryPanel") };
   function read(key, fallback) { try { const value = localStorage.getItem(key); return value === null ? fallback : JSON.parse(value); } catch { return fallback; } }
-  function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { toast("Browser storage is full. Export your chats and clear older conversations."); } }
+  function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { toast("Browser storage could not save this change. Export your chats and free browser storage before trying again."); return false; } }
   function id() { return globalThis.crypto?.randomUUID?.() || String(Date.now()) + Math.random().toString(36).slice(2); }
   function escapeHTML(value) { return String(value).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
   function toast(message) { $("infoTitle").textContent = "Just so you know"; $("infoText").textContent = message; $("infoDialog").showModal(); }
@@ -18,7 +19,6 @@
   function newChat() {
     currentId = id();
     chats.unshift({ id: currentId, title: "New conversation", createdAt: Date.now(), updatedAt: Date.now(), messages: [] });
-    chats = chats.slice(0, 100);
     persistChats(); renderMessages(); showPanel("chat"); $("promptInput").focus(); closeMobile();
   }
   function showPanel(name) {
@@ -82,13 +82,16 @@
     });
   }
   function syncMemoryUI() {
-    $("memoryText").value = memory; $("memoryEnabled").checked = memoryEnabled; $("memoryLength").textContent = memory.length + " / 3000";
+    $("memoryText").value = memoryDraft; $("memoryEnabled").checked = memoryEnabled; $("memoryLength").textContent = memoryDraft.length + " / 3000";
     $("memoryCount").textContent = memory.trim() ? "1" : "0"; $("memoryChipText").textContent = memoryEnabled && memory.trim() ? "Memory on" : "Memory off";
     $("memoryChip").style.color = memoryEnabled && memory.trim() ? "#cbb8ff" : "";
   }
   function saveMemory() {
-    memory = $("memoryText").value.slice(0, 3000); memoryEnabled = $("memoryEnabled").checked;
-    save(KEYS.memory, memory); save(KEYS.enabled, memoryEnabled); syncMemoryUI();
+    const draft = $("memoryText").value.slice(0, 3000);
+    const enabled = $("memoryEnabled").checked;
+    if (!save(KEYS.memory, draft)) return;
+    if (!save(KEYS.enabled, enabled)) { save(KEYS.memory, memory); return; }
+    memory = draft; memoryDraft = draft; memoryEnabled = enabled; syncMemoryUI();
     $("infoTitle").textContent = "Memory updated"; $("infoText").textContent = memoryEnabled ? "Your approved memory is saved on this device and will be included in future chat requests." : "Memory is saved locally but will not be sent with chat requests while disabled."; $("infoDialog").showModal();
   }
   async function sendMessage(content) {
@@ -99,14 +102,14 @@
     chat.updatedAt = Date.now(); persistChats(); renderMessages(); $("promptInput").value = ""; resizeInput();
     busy = true; $("sendBtn").disabled = true; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
     try {
-      const recent = chat.messages.slice(-24).map(m => ({ role: m.role, content: m.content }));
+      const recent = chat.messages.filter(m => !m.isError).slice(-24).map(m => ({ role: m.role, content: m.content }));
       const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: recent, memory: memoryEnabled ? memory : "" }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "The request failed. Please try again.");
       chat.messages.push({ role: "assistant", content: data.answer }); chat.updatedAt = Date.now(); persistChats(); renderMessages();
     } catch (error) {
       const message = error.message || "Could not reach AdizillaAI.";
-      chat.messages.push({ role: "assistant", content: "I couldn't complete that request. " + message }); persistChats(); renderMessages();
+      chat.messages.push({ role: "assistant", content: "I couldn't complete that request. " + message, isError: true }); persistChats(); renderMessages();
     } finally {
       busy = false; $("sendBtn").disabled = false; $("typing").classList.add("hidden"); $("promptInput").focus();
     }
@@ -129,9 +132,9 @@
   $("promptInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("chatForm").requestSubmit(); } });
   document.querySelectorAll("[data-prompt]").forEach(btn => btn.addEventListener("click", () => { $("promptInput").value = btn.dataset.prompt; resizeInput(); $("promptInput").focus(); }));
   $("memoryChip").addEventListener("click", () => showPanel("memory"));
-  $("memoryText").addEventListener("input", () => { $("memoryLength").textContent = $("memoryText").value.length + " / 3000"; });
+  $("memoryText").addEventListener("input", () => { memoryDraft = $("memoryText").value; $("memoryLength").textContent = memoryDraft.length + " / 3000"; });
   $("saveMemory").addEventListener("click", saveMemory);
-  $("memoryEnabled").addEventListener("change", () => { memoryEnabled = $("memoryEnabled").checked; save(KEYS.enabled, memoryEnabled); syncMemoryUI(); });
+  $("memoryEnabled").addEventListener("change", () => { const next = $("memoryEnabled").checked; if (save(KEYS.enabled, next)) { memoryEnabled = next; syncMemoryUI(); } else { $("memoryEnabled").checked = memoryEnabled; } });
   $("searchToggle").addEventListener("click", () => { $("searchChats").classList.toggle("hidden"); if (!$("searchChats").classList.contains("hidden")) $("searchChats").focus(); else { $("searchChats").value = ""; renderHistory(); } });
   $("searchChats").addEventListener("input", e => renderHistory(e.target.value));
   $("exportChats").addEventListener("click", exportChats);
@@ -140,7 +143,7 @@
   $("notifyUpgrade").addEventListener("click", () => { $("upgradeDialog").close(); toast("Launch notifications are not connected yet. Premium billing and account infrastructure must be added before sign-ups can be collected."); });
   $("settingsBtn").addEventListener("click", () => openDialog("settingsDialog"));
   $("clearChats").addEventListener("click", () => { chats = []; currentId = null; persistChats(); renderMessages(); $("settingsDialog").close(); });
-  $("clearMemory").addEventListener("click", () => { memory = ""; memoryEnabled = false; save(KEYS.memory, memory); save(KEYS.enabled, false); syncMemoryUI(); $("settingsDialog").close(); toast("Saved memory cleared from this browser."); });
+  $("clearMemory").addEventListener("click", () => { if (!save(KEYS.memory, "") || !save(KEYS.enabled, false)) return; memory = ""; memoryDraft = ""; memoryEnabled = false; syncMemoryUI(); $("settingsDialog").close(); toast("Saved memory cleared from this browser."); });
   $("attachInfo").addEventListener("click", () => toast("File attachments are on the roadmap. The current chat endpoint accepts text only."));
   $("openSidebar").addEventListener("click", () => { $("sidebar").classList.add("open"); $("scrim").classList.add("show"); });
   $("closeSidebar").addEventListener("click", closeMobile); $("scrim").addEventListener("click", closeMobile);

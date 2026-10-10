@@ -312,14 +312,17 @@ let sendPasswordResetEmail, signOut, updateProfile;
       const actions = document.createElement("div"); actions.className = "message-actions";
       const copy = document.createElement("button"); copy.textContent = "Copy response"; copy.addEventListener("click", async () => { try { await navigator.clipboard.writeText(message.content); copy.textContent = "Copied"; } catch { toast("Clipboard access isn't available in this browser."); } });
       actions.append(copy);
-      if (message.isError) {
-        const retry = document.createElement("button");
-        retry.textContent = "Retry";
+      if (message.isError && message.retryContent) {
+        const retry = document.createElement("button"); retry.textContent = "Retry";
         retry.addEventListener("click", () => {
-          const chat = activeChat();
-          if (chat?.messages?.at(-1)?.isError) chat.messages.pop();
-          renderMessages();
-          sendMessage($("promptInput").value);
+          const chat = activeChat(); if (!chat) return;
+          const errorIndex = chat.messages.indexOf(message);
+          if (errorIndex >= 0) {
+            chat.messages.splice(errorIndex, 1);
+            if (errorIndex > 0 && chat.messages[errorIndex - 1]?.role === "user") chat.messages.splice(errorIndex - 1, 1);
+          }
+          $("promptInput").value = message.retryContent;
+          persistChats(); renderMessages(); resizeInput(); $("promptInput").focus();
         });
         actions.append(retry);
       }
@@ -433,7 +436,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
       if (error.name !== "AbortError") {
         const message = error.message || "Could not reach AdizillaAI.";
         $("promptInput").value = content; resizeInput();
-        chat.messages.push({ role: "assistant", content: "That one did not go through. Your message is still here. Try again? " + message, isError: true }); persistChats(); renderMessages();
+        chat.messages.push({ role: "assistant", content: "That one did not go through. Your message is still in the composer. Try again when ready. " + message, isError: true, retryContent: attachments.length ? null : content }); persistChats(); renderMessages();
       }
     } finally {
       busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ti ti-arrow-up" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();

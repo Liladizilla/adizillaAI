@@ -38,7 +38,7 @@
           <p>More room for bigger ideas.</p>
           <button id="upgradeSide" class="upgrade-link">Explore Adizilla Pro <span>↗</span></button>
         </div>
-        <button class="account-cta" id="accountBtn"><span class="account-icon">↗</span><span><b id="accountActionTitle">Sign in or create account</b><small id="accountActionSub">Sync is coming soon</small></span></button><button class="profile-row" id="settingsBtn"><div class="avatar" id="profileAvatar">G</div><div class="profile-copy"><strong id="profileName">Guest workspace</strong><span id="profileSub">Local device · no account</span></div><span class="more">•••</span></button>
+        <button class="account-cta" id="accountBtn"><span class="account-icon">↗</span><span><b id="accountActionTitle">Sign in or create account</b><small id="accountActionSub">Cloud sync enabled</small></span></button><button class="profile-row" id="settingsBtn"><div class="avatar" id="profileAvatar">G</div><div class="profile-copy"><strong id="profileName">Guest workspace</strong><span id="profileSub">Local device · no account</span></div><span class="more">•••</span></button>
       </div>
     </aside>
     <div class="mobile-scrim" id="scrim"></div>
@@ -78,8 +78,8 @@
         <div class="notice"><span>ⓘ</span><p><b>Your data, your call.</b><br>Clear memory whenever you like. Browser storage is not account sync or encrypted cloud storage. Don't save passwords or sensitive secrets here.</p></div>
       </section>
       <section id="libraryPanel" class="panel content-panel hidden">
-        <div class="content-heading"><div class="eyebrow">YOUR WORKSPACE</div><h1>Keep the good<br><em>stuff close.</em></h1><p>Find and export conversations you've saved on this device.</p></div>
-        <div class="library-card"><div class="library-symbol">▤</div><div><b>Conversation library</b><p class="muted">Your chats are saved locally in this browser.</p></div><button class="secondary-btn" id="exportChats">Export chats ↗</button></div>
+        <div class="content-heading"><div class="eyebrow">YOUR WORKSPACE</div><h1>Keep the good<br><em>stuff close.</em></h1><p>Find and export conversations saved in your account or on this device.</p></div>
+        <div class="library-card"><div class="library-symbol">▤</div><div><b>Conversation library</b><p class="muted">Signed-in conversations sync to your account. Guest history stays on this device.</p></div><button class="secondary-btn" id="exportChats">Export chats ↗</button></div>
         <div id="libraryList" class="library-list"></div>
       </section>
     </main>
@@ -105,12 +105,12 @@
     </div>
     <div id="authSignedInState" class="hidden">
       <div class="modal-eyebrow">ACCOUNT</div><h2>You're signed in.</h2><p id="authSignedInEmail" class="signed-in-email"></p>
-      <p class="modal-footnote">Your conversations and memory are still stored in this browser. Cloud sync is a separate next step.</p>
+      <p class="modal-footnote">Your conversations sync to your account when connected. Saved memory remains on this device.</p>
       <button class="secondary-btn full-btn" id="signOutBtn" type="button">Sign out</button>
     </div>
   </dialog>
-  <dialog id="upgradeDialog" class="modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">THE NEXT CHAPTER</div><h2>Make room for<br><em>bigger ideas.</em></h2><p>Adizilla Pro is being prepared. These plans are a product preview, not an active payment flow.</p><div class="pricing-grid"><div class="price-card"><span>FREE</span><h3>$0<small> / forever</small></h3><p>Everyday AI chat</p><ul><li>Local chat history</li><li>Basic saved memory</li><li>Provider free-tier limits</li></ul><button class="secondary-btn" data-close>Current plan</button></div><div class="price-card featured"><span>✦ ADIZILLA PRO</span><h3>Coming soon</h3><p>For your bigger workflows</p><ul><li>Long-term synced memory</li><li>Higher message limits</li><li>File & document tools</li><li>Advanced models and research</li><li>Export, folders & custom assistants</li></ul><button class="primary-btn" id="notifyUpgrade">Join the launch list</button></div></div><p class="modal-footnote">Premium features will need accounts, server-side plan checks, secure storage, and billing before launch.</p></dialog>
-  <dialog id="settingsDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">PREFERENCES</div><h2>Your workspace.</h2><p>Local-first for now. Accounts and synced conversations aren't connected yet.</p><button class="secondary-btn full-btn" id="clearChats">Delete all local conversations</button><button class="secondary-btn full-btn" id="clearMemory">Clear saved memory</button><p class="modal-footnote">This only affects this browser on this device.</p></dialog>
+  <dialog id="upgradeDialog" class="modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">THE NEXT CHAPTER</div><h2>Make room for<br><em>bigger ideas.</em></h2><p>Adizilla Pro is being prepared. These plans are a product preview, not an active payment flow.</p><div class="pricing-grid"><div class="price-card"><span>FREE</span><h3>$0<small> / forever</small></h3><p>Everyday AI chat</p><ul><li>Synced chat history</li><li>Basic saved memory</li><li>Provider free-tier limits</li></ul><button class="secondary-btn" data-close>Current plan</button></div><div class="price-card featured"><span>✦ ADIZILLA PRO</span><h3>Coming soon</h3><p>For your bigger workflows</p><ul><li>Long-term synced memory</li><li>Higher message limits</li><li>File & document tools</li><li>Advanced models and research</li><li>Export, folders & custom assistants</li></ul><button class="primary-btn" id="notifyUpgrade">Join the launch list</button></div></div><p class="modal-footnote">Premium features will need accounts, server-side plan checks, secure storage, and billing before launch.</p></dialog>
+  <dialog id="settingsDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">PREFERENCES</div><h2>Your workspace.</h2><p>Your conversations sync to your signed-in account. Memory remains local to this browser for now.</p><button class="secondary-btn full-btn" id="clearChats">Delete all local conversations</button><button class="secondary-btn full-btn" id="clearMemory">Clear saved memory</button><p class="modal-footnote">Deleting all conversations also removes their cloud copies for this account. Saved memory is only stored on this device.</p></dialog>
   <dialog id="infoDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">IN THE WORKS</div><h2 id="infoTitle">Coming soon</h2><p id="infoText">This feature is not connected yet.</p><button class="primary-btn full-btn" data-close>Got it</button></dialog>
   <script type="module" src="/assets/app.js"></script>
 </body>

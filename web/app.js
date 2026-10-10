@@ -51,11 +51,113 @@
     $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
   }
   function renderText(content) {
-    // Safe lightweight formatting: escape HTML first, then support paragraphs, inline code and fenced code.
-    let text = escapeHTML(content);
-    text = text.replace(/```([\s\S]*?)```/g, (_, code) => "<pre><code>" + code.trim() + "</code></pre>");
-    text = text.replace(/`([^`\n]+)`/g, "<code>$1</code>");
-    return text.split(/\n{2,}/).map(block => block.startsWith("<pre>") ? block : "<p>" + block.replace(/\n/g, "<br>") + "</p>").join("");
+    // Render a safe Markdown subset. Raw HTML from model output is escaped before formatting.
+    let source = escapeHTML(String(content ?? "").replace(/\r\n?/g, "\n"));
+    const protectedHTML = [];
+    const protect = (html) => {
+      const token = "@@ADIZILLA_TOKEN_" + protectedHTML.length + "@@";
+      protectedHTML.push(html);
+      return token;
+    };
+    const tick = String.fromCharCode(96);
+    const fencePattern = new RegExp(tick.repeat(3) + "([^\\n" + tick + "]*)\\n([\\s\\S]*?)" + tick.repeat(3), "g");
+    source = source.replace(fencePattern, (_, language, code) => {
+      const lang = language.trim().replace(/[^a-zA-Z0-9_+-]/g, "");
+      const label = lang ? '<span class="code-language">' + lang + '</span>' : "";
+      return "\n" + protect('<pre class="code-block">' + label + '<code>' + code.replace(/\n$/, "") + '</code></pre>') + "\n";
+    });
+    const inlineCodePattern = new RegExp(tick + "([^" + tick + "\\n]+)" + tick, "g");
+    source = source.replace(inlineCodePattern, (_, code) =>
+      protect('<code class="inline-code">' + code + '</code>')
+    );
+
+    function inline(text) {
+      let value = text;
+      value = value.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+      value = value.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      value = value.replace(/__(.+?)__/g, "<strong>$1</strong>");
+      value = value.replace(/~~(.+?)~~/g, "<del>$1</del>");
+      value = value.replace(/==(.+?)==/g, '<mark class="text-highlight">$1</mark>');
+      value = value.replace(/(^|[^\w*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+      value = value.replace(/(^|[^\w_])_([^_\n]+)_(?!\w)/g, "$1<em>$2</em>");
+      return value;
+    }
+
+    const lines = source.split("\n");
+    const output = [];
+    let paragraph = [];
+    const flushParagraph = () => {
+      if (paragraph.length) {
+        output.push("<p>" + inline(paragraph.join("<br>")) + "</p>");
+        paragraph = [];
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+      if (!trimmed) { flushParagraph(); continue; }
+
+      const tokenMatch = trimmed.match(/^@@ADIZILLA_TOKEN_(\d+)@@$/);
+      if (tokenMatch) {
+        flushParagraph();
+        output.push(trimmed);
+        continue;
+      }
+
+      const heading = trimmed.match(/^(#{1,6})\s+(.+)$/);
+      if (heading) {
+        flushParagraph();
+        const level = heading[1].length;
+        output.push("<h" + level + ">" + inline(heading[2].replace(/\s+#+$/, "")) + "</h" + level + ">");
+        continue;
+      }
+
+      if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+        flushParagraph();
+        output.push("<hr>");
+        continue;
+      }
+
+      if (/^&gt;\s?/.test(trimmed)) {
+        flushParagraph();
+        const quote = [];
+        while (i < lines.length && /^&gt;\s?/.test(lines[i].trim())) {
+          quote.push(inline(lines[i].trim().replace(/^&gt;\s?/, "")));
+          i++;
+        }
+        i--;
+        output.push("<blockquote>" + quote.map(item => "<p>" + item + "</p>").join("") + "</blockquote>");
+        continue;
+      }
+
+      const unordered = trimmed.match(/^[-*+]\s+(.+)$/);
+      const ordered = trimmed.match(/^\d+[.)]\s+(.+)$/);
+      if (unordered || ordered) {
+        flushParagraph();
+        const isOrdered = Boolean(ordered);
+        const tag = isOrdered ? "ol" : "ul";
+        const items = [];
+        while (i < lines.length) {
+          const candidate = lines[i].trim();
+          const match = candidate.match(isOrdered ? /^\d+[.)]\s+(.+)$/ : /^[-*+]\s+(.+)$/);
+          if (!match) break;
+          items.push("<li>" + inline(match[1]) + "</li>");
+          i++;
+        }
+        i--;
+        output.push("<" + tag + ">" + items.join("") + "</" + tag + ">");
+        continue;
+      }
+
+      paragraph.push(trimmed);
+    }
+    flushParagraph();
+
+    let html = output.join("");
+    html = html.replace(/@@ADIZILLA_TOKEN_(\d+)@@/g, (_, index) => protectedHTML[Number(index)] || "");
+    return html;
   }
   function makeMessage(message, index) {
     const row = document.createElement("article"); row.className = "message " + message.role;

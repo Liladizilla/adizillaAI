@@ -158,10 +158,10 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 .history-wrap{min-height:0}.tiny-icon{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:6px}.tiny-icon:hover{background:var(--panel2);color:var(--text)}.suggestion-arrow{font-size:14px}
 
 /* Final token overrides for legacy selectors retained by the existing app. */
-:root{--accent2:var(--accent);--shadow:none}
+:root{--accent2:var(--accent);--shadow:none;--control-border:#647267}
 .auth-brand small{display:none!important}
 .main-area,.light-mode .main-area{background:var(--bg)!important}
-.light-mode{--bg:#F7F3EC;--sidebar:#EFE9DD;--panel:#FCFAF6;--panel2:#F1ECE1;--line:#E1D9C9;--text:#1F1B16;--muted:#655D52;--soft:#514A40;--accent:#1E6B53;--accent2:var(--accent);--danger:#B4392D}
+.light-mode{--bg:#F7F3EC;--sidebar:#EFE9DD;--panel:#FCFAF6;--panel2:#F1ECE1;--line:#E1D9C9;--text:#1F1B16;--muted:#655D52;--soft:#514A40;--accent:#1E6B53;--accent2:var(--accent);--danger:#B4392D;--control-border:#8D8576}
 .light-mode .topbar{border-color:var(--line)}.light-mode .breadcrumb b{color:var(--text)}
 .light-mode .new-chat,.light-mode .composer,.light-mode .suggestion,.light-mode .memory-card,.light-mode .library-card,.light-mode .library-row{background:var(--panel);color:var(--text);border-color:var(--line)}
 .light-mode .composer textarea,.light-mode .memory-text,.light-mode .message-content{color:var(--text)}

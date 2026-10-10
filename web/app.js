@@ -149,7 +149,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const list = $("chatList"); list.replaceChildren();
     const filtered = chats.filter(c => c.title.toLowerCase().includes(filter.toLowerCase()));
     $("emptyHistory").classList.toggle("hidden", filtered.length > 0);
-    $("emptyHistory").textContent = filter ? "No matching conversations." : "Your conversations will appear here.";
+    $("emptyHistory").textContent = filter ? "No matching conversations." : "Nothing here yet. Your chats show up as you have them."; $("recentsHeading").classList.toggle("hidden", chats.length === 0 && !filter); $("chatCount").classList.toggle("hidden", chats.length === 0);
     $("chatCount").textContent = String(chats.length);
     filtered.forEach(chat => {
       const row = document.createElement("div"); row.className = "history-item" + (chat.id === currentId ? " selected" : "");
@@ -320,8 +320,12 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   function syncMemoryUI() {
     $("memoryText").value = memoryDraft; $("memoryEnabled").checked = memoryEnabled; $("memoryLength").textContent = memoryDraft.length + " / 3000";
-    $("memoryCount").textContent = memory.trim() ? "1" : "0"; $("memoryChipText").textContent = memoryEnabled && memory.trim() ? "Memory on" : "Memory off";
-    $("memoryChip").style.color = memoryEnabled && memory.trim() ? "#cbb8ff" : "";
+    $("memoryCount").textContent = memory.trim() ? "1" : "0";
+    $("memoryCount").classList.toggle("hidden", !memory.trim());
+    $("memoryChipText").textContent = memoryEnabled && memory.trim() ? "Memory on" : "Memory off";
+    $("memoryChip").setAttribute("aria-pressed", String(Boolean(memoryEnabled && memory.trim())));
+    $("memoryChip").title = memoryEnabled && memory.trim() ? "Memory is on. Select to manage saved memory." : "Memory is off. Select to manage saved memory.";
+    $("memoryChip").style.color = memoryEnabled && memory.trim() ? "var(--accent)" : "";
   }
   function saveMemory() {
     const draft = $("memoryText").value.slice(0, 3000);
@@ -405,7 +409,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
       const message = error.message || "Could not reach AdizillaAI.";
       chat.messages.push({ role: "assistant", content: "I couldn't complete that request. " + message, isError: true }); persistChats(); renderMessages();
     } finally {
-      busy = false; $("sendBtn").disabled = false; $("typing").classList.add("hidden"); $("promptInput").focus();
+      busy = false; $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
     }
   }
   function resizeInput() {
@@ -431,7 +435,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const greeting = $("welcomeGreeting");
     if (!greeting) return;
     const name = firebaseUser?.displayName?.trim()?.split(/\\s+/)[0];
-    const hour = Number(new Intl.DateTimeFormat("en-GB", { hour:"2-digit", hour12:false, timeZone:"Africa/Nairobi" }).format(new Date()));
+    const hour = new Date().getHours();
     const period = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
     greeting.textContent = name ? "Good " + period + ", " + name + ". What's on your mind?" : "What's on your mind?";
   }
@@ -732,6 +736,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("exportChats").addEventListener("click", exportChats);
   $("themeBtn").addEventListener("click", () => { theme = theme === "dark" ? "light" : theme === "light" ? "system" : "dark"; applyTheme(theme); save(KEYS.theme, theme); });
   $("accountUpgradeBtn").addEventListener("click", openRevenueCatPaywall);
+  $("settingsSignOut").addEventListener("click", async () => { if (!firebaseAuth) return; try { await signOut(firebaseAuth); $("settingsDialog").close(); toast("You are signed out. Your local conversations remain on this device."); } catch (error) { toast(error.message || "Sign out failed. Please try again."); } });
   $("settingsOpenAuth").addEventListener("click", async () => { $("settingsDialog").close(); await authInitialization; setAuthMode("signin"); openDialog("authDialog"); });
   $("settingsBtn").addEventListener("click", () => openDialog("settingsDialog"));
   $("clearChats").addEventListener("click", () => { chats.forEach(chat => markCloudChatDeleted(chat.id)); chats = []; currentId = null; persistChats(); renderMessages(); $("settingsDialog").close(); });

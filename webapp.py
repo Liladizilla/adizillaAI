@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from pathlib import Path
+from datetime import datetime, timezone
 from typing import Literal
 
 from dotenv import load_dotenv
@@ -11,7 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 import firebase_admin
-from firebase_admin import auth as firebase_auth, credentials
+from firebase_admin import auth as firebase_auth, credentials, firestore
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -74,6 +75,55 @@ def auth_config():
     return {"configured": configured, "firebase": config if configured else None}
 
 
+# Server-side per-account limits. Firestore provides shared, atomic counters across serverless instances.
+DAILY_CHAT_LIMIT = int(os.getenv("DAILY_CHAT_LIMIT", "20"))
+MINUTE_CHAT_LIMIT = int(os.getenv("MINUTE_CHAT_LIMIT", "5"))
+
+
+def enforce_chat_limits(user: dict, firebase_app):
+    """Atomically enforce per-user request limits; fail closed if quota storage is unavailable."""
+    uid = user.get("uid")
+    if not uid:
+        raise HTTPException(status_code=401, detail="Your session is invalid. Sign in again.")
+    try:
+        db = firestore.client(app=firebase_app)
+        now = datetime.now(timezone.utc)
+        day_key = now.strftime("%Y-%m-%d")
+        minute_key = now.strftime("%Y-%m-%dT%H:%M")
+        ref = db.collection("adizilla_usage").document(uid)
+        transaction = db.transaction()
+
+        @firestore.transactional
+        def update_usage(txn):
+            snapshot = ref.get(transaction=txn)
+            data = snapshot.to_dict() if snapshot.exists else {}
+            daily_count = data.get("day_count", 0) if data.get("day") == day_key else 0
+            minute_count = data.get("minute_count", 0) if data.get("minute") == minute_key else 0
+            if daily_count >= DAILY_CHAT_LIMIT:
+                return "daily"
+            if minute_count >= MINUTE_CHAT_LIMIT:
+                return "minute"
+            txn.set(ref, {
+                "day": day_key,
+                "day_count": daily_count + 1,
+                "minute": minute_key,
+                "minute_count": minute_count + 1,
+                "updated_at": firestore.SERVER_TIMESTAMP,
+            }, merge=True)
+            return "ok"
+
+        result = update_usage(transaction)
+        if result == "daily":
+            raise HTTPException(status_code=429, detail=f"Daily chat limit reached ({DAILY_CHAT_LIMIT} messages). Try again tomorrow.")
+        if result == "minute":
+            raise HTTPException(status_code=429, detail=f"Rate limit reached ({MINUTE_CHAT_LIMIT} messages per minute). Wait a moment and retry.")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Usage limiter unavailable: uid=%s error_type=%s", uid, type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Usage protection is temporarily unavailable. Please retry shortly.")
+
+
 class Message(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(min_length=1, max_length=12000)
@@ -125,6 +175,10 @@ def health():
 @app.post("/api/chat")
 def chat(payload: ChatRequest, user: dict = Depends(require_firebase_user)):
     user_uid = user.get("uid", "unknown")
+    firebase_app = get_firebase_admin_app()
+    if not firebase_app:
+        raise HTTPException(status_code=503, detail="Authentication is not configured on the server yet.")
+    enforce_chat_limits(user, firebase_app)
     config = provider_config()
     if not config or not config["api_key"]:
         raise HTTPException(

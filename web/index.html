@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0F1311">
-  <meta name="description" content="AdizillaAI ,  a calmer workspace for thinking, creating, and getting things done.">
+  <meta name="description" content="A calm, capable workspace for conversations, ideas, and everyday work.">
   <title>AdizillaAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
       </div>
       <button class="new-chat" id="newChat"><span class="plus" aria-hidden="true"><i class="ti ti-plus"></i></span> New chat <kbd>⌘ ⇧ O</kbd></button>
       <div class="side-section">
-        <div class="section-heading"><span>WORKSPACE</span><button class="tiny-icon" id="searchToggle" title="Search conversations">⌕</button></div>
+        <div class="section-heading"><span>WORKSPACE</span><button class="tiny-icon" id="searchToggle" title="Search conversations" aria-label="Search conversations"><i class="ti ti-search" aria-hidden="true"></i></button></div>
         <input id="searchChats" class="search-chats hidden" placeholder="Search conversations…" aria-label="Search conversations">
         <button class="nav-item active" data-panel="chat"><span class="nav-icon" aria-hidden="true"><i class="ti ti-message-circle"></i></span> Chat <span class="nav-end">⌘ 1</span></button>
         <button class="nav-item" data-panel="memory"><span class="nav-icon" aria-hidden="true"><i class="ti ti-brain"></i></span> Memory <span class="nav-end hidden" id="memoryCount">0</span></button>
@@ -43,18 +43,18 @@
       <section id="chatPanel" class="panel active-panel">
         <div class="conversation-scroll" id="conversationScroll">
           <div class="welcome" id="welcome"><h1 id="welcomeGreeting">What's on your mind?</h1><div class="suggestion-list" aria-label="Try a prompt">
-<button class="suggestion" data-prompt="Turn these rough notes into a clear plan: [paste your notes]"><span>Turn these rough notes into a clear plan</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>
-<button class="suggestion" data-prompt="Explain this error and how to fix it: [paste the error and relevant code]"><span>Explain this error and how to fix it</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>
-<button class="suggestion" data-prompt="Rewrite this email so it sounds confident, not stiff: [paste your draft]"><span>Rewrite an email so it sounds confident, not stiff</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>
-<button class="suggestion" data-prompt="Compare these options using cost, effort, risks, and long-term value: [list the options]"><span>Compare options by cost, effort, and risk</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>
-<button class="suggestion" data-prompt="Teach me [topic] from the basics, with one practical example and a short exercise."><span>Learn a topic with an example and exercise</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button></div></div>
+<button class="suggestion" data-prompt="Turn these rough notes into a clear plan: [paste your notes]"><span>Turn these rough notes into a clear plan</span><span class="suggestion-arrow" aria-hidden="true"></span></button>
+<button class="suggestion" data-prompt="Explain this error and how to fix it: [paste the error and relevant code]"><span>Explain this error and how to fix it</span><span class="suggestion-arrow" aria-hidden="true"></span></button>
+<button class="suggestion" data-prompt="Rewrite this email so it sounds confident, not stiff: [paste your draft]"><span>Rewrite an email so it sounds confident, not stiff</span><span class="suggestion-arrow" aria-hidden="true"></span></button>
+<button class="suggestion" data-prompt="Compare these options using cost, effort, risks, and long-term value: [list the options]"><span>Compare options by cost, effort, and risk</span><span class="suggestion-arrow" aria-hidden="true"></span></button>
+<button class="suggestion" data-prompt="Teach me [topic] from the basics, with one practical example and a short exercise."><span>Learn a topic with an example and exercise</span><span class="suggestion-arrow" aria-hidden="true"></span></button></div></div>
           <div id="messages" class="messages" aria-live="polite"></div>
           <div id="typing" class="typing hidden" role="status" aria-live="polite">Reading your message…</div>
         </div>
         <div class="composer-zone">
           <form id="chatForm" class="composer">
             <textarea id="promptInput" rows="1" maxlength="12000" placeholder="Type a question, paste a draft, or drop a file." aria-label="Message AdizillaAI"></textarea>
-            <div id="attachmentList" class="attachment-list hidden" aria-live="polite"></div><div class="composer-footer"><div class="composer-tools"><button type="button" class="tool-btn" id="memoryChip" title="Memory is off. Select to change memory settings." aria-pressed="false"><span aria-hidden="true"><i class="ti ti-brain"></i></span> <span id="memoryChipText">Memory off</span></button><span class="tool-separator"></span><button type="button" class="tool-btn" id="attachInfo" title="Attach images or documents">＋ <span>Attach</span></button><input id="attachmentInput" class="hidden" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.tsv,.json,.xml,.py,.js,.ts,.jsx,.tsx,.html,.css,.java,.c,.h,.cpp,.rs,.sh,.yaml,.yml,.toml,.log"><span class="attachment-count" id="attachmentCount" aria-live="polite"></span><button type="button" class="tool-btn image-create-btn" id="createImageBtn" aria-pressed="false" title="Create an image using your daily allowance"><span aria-hidden="true"><i class="ti ti-photo"></i></span> <span id="imageModeLabel">Create image</span></button></div><div class="send-area"><span class="input-hint" id="inputHint">Enter to send</span><button type="submit" id="sendBtn" class="send-btn" aria-label="Send message" disabled><i class="ti ti-arrow-up" aria-hidden="true"></i></button></div></div>
+            <div id="attachmentList" class="attachment-list hidden" aria-live="polite"></div><div class="composer-footer"><div class="composer-tools"><button type="button" class="tool-btn" id="memoryChip" title="Memory is off. Select to change memory settings." aria-pressed="false"><span aria-hidden="true"><i class="ti ti-brain"></i></span> <span id="memoryChipText">Memory off</span></button><span class="tool-separator"></span><button type="button" class="tool-btn" id="attachInfo" title="Attach images or documents" aria-label="Attach images or documents"><i class="ti ti-paperclip" aria-hidden="true"></i> <span>Attach</span></button><input id="attachmentInput" class="hidden" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.tsv,.json,.xml,.py,.js,.ts,.jsx,.tsx,.html,.css,.java,.c,.h,.cpp,.rs,.sh,.yaml,.yml,.toml,.log"><span class="attachment-count" id="attachmentCount" aria-live="polite"></span><button type="button" class="tool-btn image-create-btn" id="createImageBtn" aria-pressed="false" title="Create an image using your daily allowance"><span aria-hidden="true"><i class="ti ti-photo"></i></span> <span id="imageModeLabel">Create image</span></button></div><div class="send-area"><span class="input-hint" id="inputHint">Enter to send</span><button type="submit" id="sendBtn" class="send-btn" aria-label="Send message" disabled><i class="ti ti-arrow-up" aria-hidden="true"></i></button></div></div>
           </form>
           <p class="disclaimer">AdizillaAI can make mistakes. Check important information.</p>
         </div>
@@ -62,18 +62,18 @@
       <section id="memoryPanel" class="panel content-panel hidden">
         <div class="content-heading"><div class="eyebrow">PERSONALIZATION</div><h1>A little context.<br><em>A lot more you.</em></h1><p>Memory lets Adizilla remember details you choose to keep, so you don't have to start from zero every time.</p></div>
         <div class="memory-card"><div class="card-title"><div><span class="card-symbol">⌁</span><b>Your saved memories</b></div><label class="toggle"><input id="memoryEnabled" type="checkbox"><span></span></label></div><p class="muted">Memory is stored in this browser on this device. It is sent with chat requests only when enabled.</p><textarea id="memoryText" class="memory-text" maxlength="3000" placeholder="For example: I prefer concise explanations, I'm learning Python, and I'm building a personal project…"></textarea><div class="memory-footer"><span id="memoryLength">0 / 3000</span><button class="primary-btn" id="saveMemory">Save memory</button></div></div>
-        <div class="notice"><span>ⓘ</span><p><b>Your data, your call.</b><br>Clear memory whenever you like. Browser storage is not account sync or encrypted cloud storage. Don't save passwords or sensitive secrets here.</p></div>
+        <div class="notice"><span aria-hidden="true"><i class="ti ti-info-circle"></i></span><p><b>Your data, your call.</b><br>Clear memory whenever you like. Browser storage is not account sync or encrypted cloud storage. Don't save passwords or sensitive secrets here.</p></div>
       </section>
       <section id="libraryPanel" class="panel content-panel hidden">
         <div class="content-heading"><div class="eyebrow">YOUR WORKSPACE</div><h1>Keep the good<br><em>stuff close.</em></h1><p>Find and export conversations saved in your account or on this device.</p></div>
-        <div class="library-card"><div class="library-symbol">▤</div><div><b>Conversation library</b><p class="muted">Signed-in conversations sync to your account. Guest history stays on this device.</p></div><button class="secondary-btn" id="exportChats">Export chats ↗</button></div>
+        <div class="library-card"><div class="library-symbol" aria-hidden="true"><i class="ti ti-library"></i></div><div><b>Conversation library</b><p class="muted">Signed-in conversations sync to your account. Guest history stays on this device.</p></div><button class="secondary-btn" id="exportChats">Export chats </button></div>
         <div id="libraryList" class="library-list"></div>
       </section>
     </main>
   </div>
 
   <dialog id="authDialog" class="modal small-modal auth-modal">
-    <button class="modal-close" data-close aria-label="Close">×</button>
+    <button class="modal-close" data-close aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button>
     <div class="auth-brand"><span class="brand-mark"><span>a</span></span><div><b>adizilla<span>AI</span></b><small>YOUR SPACE, YOUR IDEAS</small></div></div>
     <div id="authFormState">
       <div class="modal-eyebrow" id="authEyebrow">YOUR WORKSPACE</div>
@@ -106,12 +106,12 @@
     <form id="imageForm" class="image-form">
       <label for="imagePrompt">Image prompt</label>
       <textarea id="imagePrompt" rows="4" maxlength="2000" required placeholder="A clear editorial illustration of [subject], natural light, thoughtful composition, restrained color palette…"></textarea>
-      <div class="image-form-footer"><small>Up to 3 generated images per account per day.</small><button class="primary-btn" id="generateImageSubmit" type="submit">Generate image ↗</button></div>
+      <div class="image-form-footer"><small>Up to 3 generated images per account per day.</small><button class="primary-btn" id="generateImageSubmit" type="submit">Generate image </button></div>
     </form>
     <p id="imageError" class="auth-error hidden" role="alert"></p>
     <div id="generatedImageWrap" class="generated-image-wrap hidden">
       <img id="generatedImage" alt="AI-generated artwork">
-      <div class="generated-image-footer"><span id="generatedImageModel"></span><a id="openGeneratedImage" target="_blank" rel="noopener noreferrer">Open full image ↗</a></div>
+      <div class="generated-image-footer"><span id="generatedImageModel"></span><a id="openGeneratedImage" target="_blank" rel="noopener noreferrer">Open full image </a></div>
     </div>
   </dialog>
   <dialog id="infoDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">IN THE WORKS</div><h2 id="infoTitle">Coming soon</h2><p id="infoText">Image editing is not ready yet. We will tell you when it is.</p><button class="primary-btn full-btn" data-close>Got it</button></dialog>

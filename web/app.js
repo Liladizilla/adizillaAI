@@ -278,6 +278,7 @@ import {
     $("resetPasswordBtn").classList.toggle("hidden", mode === "signup");
     $("googleAuthBtn").classList.remove("hidden");
     setAuthError("");
+    if (!firebaseReady) setAuthError("Authentication setup is incomplete. The site owner must configure Firebase in the server environment.");
     if (firebaseUser) $("authSignedInEmail").textContent = firebaseUser.email || firebaseUser.displayName || "Signed-in account";
   }
   function renderAccount() {

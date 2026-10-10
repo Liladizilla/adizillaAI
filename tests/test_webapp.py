@@ -58,12 +58,20 @@ class WebChatTests(unittest.TestCase):
         self.assertIsNone(response.json()["firebase"])
 
     def test_rejects_empty_message(self):
-        response = self.client.post("/api/chat", json={"messages": [{"role": "user", "content": ""}]})
+        webapp.app.dependency_overrides[webapp.require_firebase_user] = lambda: {"uid": "test-user"}
+        try:
+            response = self.client.post("/api/chat", json={"messages": [{"role": "user", "content": ""}]})
+        finally:
+            webapp.app.dependency_overrides.clear()
         self.assertEqual(response.status_code, 422)
 
     def test_rejects_too_many_messages(self):
-        messages = [{"role": "user", "content": "hi"}] * 41
-        response = self.client.post("/api/chat", json={"messages": messages})
+        webapp.app.dependency_overrides[webapp.require_firebase_user] = lambda: {"uid": "test-user"}
+        try:
+            messages = [{"role": "user", "content": "hi"}] * 41
+            response = self.client.post("/api/chat", json={"messages": messages})
+        finally:
+            webapp.app.dependency_overrides.clear()
         self.assertEqual(response.status_code, 422)
 
 

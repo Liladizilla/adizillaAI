@@ -89,3 +89,18 @@
 #attachInfo{cursor:pointer}
 #attachInfo:hover{color:var(--accent)}
 .light-mode .attachment-chip{background:#f3efff;border-color:#d8ccef;color:#3b3153}
+
+/* Image creation */
+.image-create-btn{color:#d4c4ff}
+.image-create-btn:hover{color:#fff;background:#2b2438;border-radius:7px}
+.image-modal{width:min(620px,calc(100vw - 28px))}
+.image-form{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.image-form label{font-size:12px;color:var(--soft);font-weight:600}
+.image-form textarea{width:100%;resize:vertical;min-height:100px;border:1px solid var(--line);border-radius:11px;background:#17161d;color:var(--text);padding:13px;line-height:1.55}
+.image-form-footer,.generated-image-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.image-form-footer small,.generated-image-model{font-size:10px;color:var(--muted)}
+.generated-image-wrap{margin-top:18px;border:1px solid var(--line);border-radius:13px;overflow:hidden;background:#121116}
+.generated-image-wrap img{display:block;width:100%;max-height:560px;object-fit:contain;background:#0e0d12}
+.generated-image-footer{padding:10px 12px}
+.generated-image-footer a{color:var(--accent);font-size:11px;text-decoration:none}
+.generated-image-footer a:hover{text-decoration:underline}

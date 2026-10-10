@@ -11,6 +11,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   let memoryEnabled = read(KEYS.enabled, false);
   let currentId = null;
   let busy = false;
+  let pendingAttachments = [];
   let theme = read(KEYS.theme, "dark");
   let firebaseAuth = null;
   let firebaseUser = null;
@@ -328,19 +329,72 @@ let sendPasswordResetEmail, signOut, updateProfile;
     memory = draft; memoryDraft = draft; memoryEnabled = enabled; syncMemoryUI();
     $("infoTitle").textContent = "Memory updated"; $("infoText").textContent = memoryEnabled ? "Your approved memory is saved on this device and will be included in future chat requests." : "Memory is saved locally but will not be sent with chat requests while disabled."; $("infoDialog").showModal();
   }
+  function renderAttachments() {
+    const list = $("attachmentList");
+    const count = $("attachmentCount");
+    if (!list || !count) return;
+    list.replaceChildren();
+    list.classList.toggle("hidden", pendingAttachments.length === 0);
+    count.textContent = pendingAttachments.length ? pendingAttachments.length + "/4 attached" : "";
+    pendingAttachments.forEach((file, index) => {
+      const chip = document.createElement("div");
+      chip.className = "attachment-chip";
+      const name = document.createElement("span");
+      name.textContent = file.name;
+      name.title = file.name;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", "Remove " + file.name);
+      remove.addEventListener("click", () => {
+        pendingAttachments.splice(index, 1);
+        renderAttachments();
+      });
+      chip.append(name, remove);
+      list.append(chip);
+    });
+  }
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Could not read " + file.name));
+      reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+      reader.readAsDataURL(file);
+    });
+  }
+  async function addAttachments(fileList) {
+    const files = Array.from(fileList || []);
+    for (const file of files) {
+      if (pendingAttachments.length >= 4) { toast("Attach up to four files per message."); break; }
+      if (file.size > 5 * 1024 * 1024) { toast(file.name + " is over the 5 MB per-file limit."); continue; }
+      try {
+        const data = await readFileAsBase64(file);
+        pendingAttachments.push({ name: file.name, mime_type: file.type || "application/octet-stream", data: data });
+      } catch (error) {
+        toast(error.message || "Could not read that file.");
+      }
+    }
+    renderAttachments();
+  }
   async function sendMessage(content) {
-    content = content.trim(); if (!content || busy) return;
+    content = content.trim();
+    if ((!content && !pendingAttachments.length) || busy) return;
     await authInitialization;
     if (!firebaseUser) { setAuthMode("signin"); openDialog("authDialog"); return; }
+    const attachments = pendingAttachments.slice();
+    pendingAttachments = [];
+    renderAttachments();
+    if (!content) content = "Please analyze the attached file(s).";
     if (!currentId || !activeChat()) { currentId = id(); chats.unshift({ id: currentId, title: "New conversation", createdAt: Date.now(), updatedAt: Date.now(), messages: [] }); }
-    const chat = activeChat(); chat.messages.push({ role: "user", content });
+    const displayContent = content + (attachments.length ? "\n\nAttached files: " + attachments.map(file => file.name).join(", ") : "");
+    const chat = activeChat(); chat.messages.push({ role: "user", content: displayContent });
     if (chat.messages.filter(m => m.role === "user").length === 1) chat.title = content.slice(0, 48) + (content.length > 48 ? "…" : "");
     chat.updatedAt = Date.now(); persistChats(); renderMessages(); $("promptInput").value = ""; resizeInput();
     busy = true; $("sendBtn").disabled = true; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
     try {
       const recent = chat.messages.filter(m => !m.isError).slice(-24).map(m => ({ role: m.role, content: m.content }));
       const idToken = await firebaseUser.getIdToken();
-      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify({ messages: recent, memory: memoryEnabled ? memory : "" }) });
+      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify({ messages: recent, memory: memoryEnabled ? memory : "", attachments: attachments }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "The request failed. Please try again.");
       chat.messages.push({ role: "assistant", content: data.answer }); chat.updatedAt = Date.now(); persistChats(); renderMessages();
@@ -493,7 +547,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
       }
       $("authDialog").close();
       $("authPassword").value = "";
-      toast(authMode === "signup" ? "Your account is ready. Your chats are currently saved on this device; cloud sync is the next step." : "You're signed in. Your personal workspace is ready on this device.");
+      toast(authMode === "signup" ? "Your account is ready. Cloud sync will connect your conversation history." : "You're signed in. Your personal workspace is ready.");
     } catch (error) {
       await showAuthErrorFrom(error);
     } finally {
@@ -509,7 +563,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     try {
       await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
       $("authDialog").close();
-      toast("Signed in with Google. Your chats are currently saved on this device; cloud sync is the next step.");
+      toast("Signed in with Google. Your personal workspace is ready.");
     } catch (error) {
       await showAuthErrorFrom(error);
     }
@@ -560,7 +614,8 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("settingsBtn").addEventListener("click", () => openDialog("settingsDialog"));
   $("clearChats").addEventListener("click", () => { chats.forEach(chat => markCloudChatDeleted(chat.id)); chats = []; currentId = null; persistChats(); renderMessages(); $("settingsDialog").close(); });
   $("clearMemory").addEventListener("click", () => { if (!save(KEYS.memory, "") || !save(KEYS.enabled, false)) return; memory = ""; memoryDraft = ""; memoryEnabled = false; syncMemoryUI(); $("settingsDialog").close(); toast("Saved memory cleared from this browser."); });
-  $("attachInfo").addEventListener("click", () => toast("File attachments are on the roadmap. The current chat endpoint accepts text only."));
+  $("attachInfo").addEventListener("click", () => $("attachmentInput").click());
+  $("attachmentInput").addEventListener("change", async event => { await addAttachments(event.target.files); event.target.value = ""; });
   $("openSidebar").addEventListener("click", () => { $("sidebar").classList.add("open"); $("scrim").classList.add("show"); });
   $("closeSidebar").addEventListener("click", closeMobile); $("scrim").addEventListener("click", closeMobile);
   document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => btn.closest("dialog").close()));

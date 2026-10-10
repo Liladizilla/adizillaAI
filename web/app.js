@@ -120,6 +120,25 @@
         continue;
       }
 
+      const nextLine = (lines[i + 1] || "").trim();
+      const isTableSeparator = /^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?$/.test(nextLine);
+      if (trimmed.includes("|") && isTableSeparator) {
+        flushParagraph();
+        const cells = (row) => row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(cell => cell.trim());
+        const headers = cells(trimmed);
+        const rows = [];
+        i += 2;
+        while (i < lines.length && lines[i].trim().includes("|") && lines[i].trim()) {
+          rows.push(cells(lines[i]));
+          i++;
+        }
+        i--;
+        const head = "<thead><tr>" + headers.map(cell => "<th>" + inline(cell) + "</th>").join("") + "</tr></thead>";
+        const body = "<tbody>" + rows.map(row => "<tr>" + headers.map((_, index) => "<td>" + inline(row[index] || "") + "</td>").join("") + "</tr>").join("") + "</tbody>";
+        output.push('<div class="table-wrap"><table class="markdown-table">' + head + body + "</table></div>");
+        continue;
+      }
+
       if (/^&gt;\s?/.test(trimmed)) {
         flushParagraph();
         const quote = [];

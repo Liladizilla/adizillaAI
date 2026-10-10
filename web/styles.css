@@ -154,3 +154,5 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 .subscription-status[data-pro="true"]{border-color:var(--line);color:var(--text);background:var(--panel2)}
 .typing{font-size:13px;color:var(--muted);padding:12px 0}
 .send-btn:disabled{opacity:1}
+
+.history-wrap{min-height:0}.tiny-icon{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:6px}.tiny-icon:hover{background:var(--panel2);color:var(--text)}.suggestion-arrow{font-size:14px}

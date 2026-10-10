@@ -34,3 +34,13 @@
 .light-mode .message-content .inline-code { background: #eee8f7; color: #5b3a99; border-color: #ddd2ee; }
 .light-mode .message-content .code-block { background: #f0edf5; color: #292431; border-color: #d7d0e1; }
 .light-mode .message-content blockquote { color: #5f586d; }
+
+.message-content .table-wrap { width: 100%; overflow-x: auto; margin: 12px 0 16px; border: 1px solid #373140; border-radius: 10px; }
+.message-content .markdown-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.55; }
+.message-content .markdown-table th,.message-content .markdown-table td { text-align: left; vertical-align: top; padding: 9px 11px; border-bottom: 1px solid #302c38; min-width: 90px; }
+.message-content .markdown-table th { background: #272230; color: #d8caff; font-weight: 700; }
+.message-content .markdown-table tr:last-child td { border-bottom: 0; }
+.message-content .markdown-table tbody tr:nth-child(even) { background: #ffffff04; }
+.light-mode .message-content .table-wrap { border-color: #d9d1e4; }
+.light-mode .message-content .markdown-table th,.light-mode .message-content .markdown-table td { border-color: #e3dce9; }
+.light-mode .message-content .markdown-table th { background: #eee8f8; color: #4f367c; }

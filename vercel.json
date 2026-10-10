@@ -5,5 +5,5 @@
       "includeFiles": "web/**"
     }
   },
-  "buildCommand": "npm run build:revenuecat"
+  "buildCommand": "npm install --include=dev && npm run build:revenuecat"
 }

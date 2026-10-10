@@ -429,35 +429,40 @@ def chat(payload: ChatRequest, user: dict = Depends(require_firebase_user)):
         payload.messages[-1].content = (payload.messages[-1].content + "\n\nAttached file content:\n" + context)[:12000]
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend({"role": item.role, "content": item.content.strip()} for item in payload.messages)
+    vision_key = os.getenv("VISION_API_KEY") or os.getenv("GROK_02") or os.getenv("grok_02")
+    vision_base_url = os.getenv("VISION_BASE_URL", "https://api.x.ai/v1").strip()
+    vision_model = os.getenv("VISION_MODEL", "grok-4.7").strip()
     if image_attachments:
+        if not vision_key:
+            raise HTTPException(status_code=503, detail="Image understanding needs a vision-capable provider. Configure VISION_API_KEY in Vercel.")
         last_user_index = next((i for i in range(len(messages) - 1, 0, -1) if messages[i]["role"] == "user"), None)
         if last_user_index is None:
             raise HTTPException(status_code=400, detail="Images must be attached to a user message.")
-        if provider == "xai":
-            content = [{"type": "input_text", "text": messages[last_user_index]["content"]}]
-            content.extend({"type": "input_image", "image_url": item["url"]} for item in image_attachments)
-        else:
-            content = [{"type": "text", "text": messages[last_user_index]["content"]}]
-            content.extend({"type": "image_url", "image_url": {"url": item["url"]}} for item in image_attachments)
+        content = [{"type": "input_text", "text": messages[last_user_index]["content"]}]
+        content.extend({"type": "input_image", "image_url": item["url"]} for item in image_attachments)
         messages[last_user_index]["content"] = content
     try:
-        with OpenAI(api_key=api_key, base_url=base_url, timeout=45.0, max_retries=1) as client:
-            if provider == "xai":
-                # Grok 4.7 is designed for the Responses API; use the supported endpoint.
-                response = client.responses.create(
-                    model=model,
-                    input=messages,
-                    max_output_tokens=1600,
-                )
+        if image_attachments:
+            with OpenAI(api_key=vision_key, base_url=vision_base_url, timeout=60.0, max_retries=1) as client:
+                response = client.responses.create(model=vision_model, input=messages, max_output_tokens=1600)
                 answer = response.output_text
-            else:
-                response = client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    temperature=0.6,
-                    max_tokens=1600,
-                )
-                answer = response.choices[0].message.content
+        else:
+            with OpenAI(api_key=api_key, base_url=base_url, timeout=45.0, max_retries=1) as client:
+                if provider == "xai":
+                    response = client.responses.create(
+                        model=model,
+                        input=messages,
+                        max_output_tokens=1600,
+                    )
+                    answer = response.output_text
+                else:
+                    response = client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        temperature=0.6,
+                        max_tokens=1600,
+                    )
+                    answer = response.choices[0].message.content
         if not answer or not answer.strip():
             raise HTTPException(status_code=502, detail="The model returned an empty response. Try again.")
         return {"answer": answer.strip(), "model": model}

@@ -140,7 +140,9 @@ let sendPasswordResetEmail, signOut, updateProfile;
   function showPanel(name) {
     Object.entries(panels).forEach(([key, panel]) => { panel.classList.toggle("active-panel", key === name); panel.classList.toggle("hidden", key !== name); });
     document.querySelectorAll(".nav-item").forEach(btn => btn.classList.toggle("active", btn.dataset.panel === name));
-    $("breadcrumbPage").textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    const chat = activeChat();
+    $("breadcrumbPage").textContent = name === "chat" && chat?.messages?.length ? chat.title : name.charAt(0).toUpperCase() + name.slice(1);
+    $("breadcrumbPage").setAttribute("aria-label", name === "chat" && chat?.messages?.length ? "Rename conversation: " + chat.title : name);
     if (name === "memory") syncMemoryUI();
     if (name === "library") renderLibrary();
     closeMobile();
@@ -161,7 +163,14 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   function openChat(chatId) { currentId = chatId; renderHistory(); renderMessages(); showPanel("chat"); }
   function renderMessages() {
-    const chat = activeChat(); const messages = $("messages"); messages.replaceChildren();
+    const chat = activeChat();
+    const crumb = $("breadcrumbPage");
+    if (document.querySelector("#chatPanel").classList.contains("active-panel")) {
+      crumb.textContent = chat?.messages?.length ? chat.title : "Chat";
+      crumb.title = chat?.messages?.length ? "Click to rename this conversation" : "";
+      crumb.style.cursor = chat?.messages?.length ? "text" : "";
+    }
+    const messages = $("messages"); messages.replaceChildren();
     const empty = !chat || !chat.messages.length; $("welcome").classList.toggle("hidden", !empty);
     if (chat) chat.messages.forEach((message, index) => messages.append(makeMessage(message, index)));
     $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
@@ -341,7 +350,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     if (!list || !count) return;
     list.replaceChildren();
     list.classList.toggle("hidden", pendingAttachments.length === 0);
-    count.textContent = pendingAttachments.length ? pendingAttachments.length + "/4 attached" : "";
+    count.textContent = pendingAttachments.length ? pendingAttachments.length + "/4 attached" : ""; updateSendState();
     pendingAttachments.forEach((file, index) => {
       const chip = document.createElement("div");
       chip.className = "attachment-chip";
@@ -713,6 +722,17 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   document.querySelectorAll("[data-panel]").forEach(btn => btn.addEventListener("click", () => showPanel(btn.dataset.panel)));
   $("newChat").addEventListener("click", newChat);
+  const renameBreadcrumb = () => {
+    const chat = activeChat();
+    if (!chat || !chat.messages?.length) return;
+    const title = window.prompt("Rename conversation", chat.title);
+    if (title === null) return;
+    const next = title.trim().slice(0, 100);
+    if (!next) return;
+    chat.title = next; chat.updatedAt = Date.now(); persistChats(); renderMessages();
+  };
+  $("breadcrumbPage").addEventListener("click", renameBreadcrumb);
+  $("breadcrumbPage").addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); renameBreadcrumb(); } });
   $("chatForm").addEventListener("submit", e => { e.preventDefault(); sendMessage($("promptInput").value); });
   $("promptInput").addEventListener("input", resizeInput);
   $("promptInput").addEventListener("focus", () => $("inputHint").classList.remove("hidden"));
@@ -725,7 +745,11 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const end = input.value.indexOf("]", start);
     if (start >= 0 && end > start) input.setSelectionRange(start + 1, end);
   }));
-  $("memoryChip").addEventListener("click", () => showPanel("memory"));
+  $("memoryChip").addEventListener("click", () => {
+    if (!memory.trim()) { showPanel("memory"); return; }
+    const next = !memoryEnabled;
+    if (save(KEYS.enabled, next)) { memoryEnabled = next; syncMemoryUI(); }
+  });
   $("modelPicker").addEventListener("change", () => {
     const label = $("modelPicker").selectedOptions[0]?.textContent || "Adizilla Fast";
     toast(label + " is a display preset only right now. The configured AI provider remains unchanged.");

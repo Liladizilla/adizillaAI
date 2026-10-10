@@ -169,6 +169,21 @@ def validate_chat_id(chat_id: str):
         raise HTTPException(status_code=400, detail="Invalid conversation ID.")
 
 
+@app.get("/api/revenuecat/config")
+def revenuecat_config():
+    """Expose only a RevenueCat Web Billing public key, never a secret REST API key."""
+    api_key = os.getenv("REVENUECAT_API_KEY", "").strip()
+    is_web_billing_key = api_key.startswith("rcb_") or api_key.startswith("rcb_sb_")
+    return {
+        "configured": is_web_billing_key,
+        "apiKey": api_key if is_web_billing_key else None,
+        "message": None if is_web_billing_key else (
+            "RevenueCat Web Billing is not configured. Set REVENUECAT_API_KEY to the Web Billing public SDK key "
+            "(rcb_... or rcb_sb_...). A test-store key or secret REST API key cannot be used by the Web SDK."
+        ),
+    }
+
+
 @app.get("/api/chats")
 def list_chats(user: dict = Depends(require_firebase_user)):
     """Return conversation metadata for the signed-in user only."""

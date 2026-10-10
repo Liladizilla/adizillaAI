@@ -440,7 +440,12 @@ let sendPasswordResetEmail, signOut, updateProfile;
       if (error.name !== "AbortError") {
         const message = error.message || "Could not reach AdizillaAI.";
         $("promptInput").value = content; resizeInput();
-        chat.messages.push({ role: "assistant", content: "That one did not go through. Your message is still in the composer. Try again when ready. " + message, isError: true, retryContent: attachments.length ? null : content }); persistChats(); renderMessages();
+        // Keep attachments available after a failed request so users do not have to select them again.
+        if (attachments.length) {
+          pendingAttachments = [...attachments, ...pendingAttachments].slice(0, 4);
+          renderAttachments();
+        }
+        chat.messages.push({ role: "assistant", content: "That request did not go through. Your message" + (attachments.length ? " and attachments are" : " is") + " back in the composer. Check the error below, then try again. " + message, isError: true, retryContent: attachments.length ? null : content }); persistChats(); renderMessages();
       }
     } finally {
       busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ti ti-arrow-up" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
@@ -765,10 +770,14 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("promptInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("chatForm").requestSubmit(); } });
   document.querySelectorAll("[data-prompt]").forEach(btn => btn.addEventListener("click", () => {
     const input = $("promptInput");
-    input.value = btn.dataset.prompt; resizeInput(); input.focus();
-    const start = input.value.indexOf("[");
-    const end = input.value.indexOf("]", start);
-    if (start >= 0 && end > start) input.setSelectionRange(start + 1, end);
+    const prompt = String(btn.dataset.prompt || "").trim();
+    if (!prompt || busy) return;
+    input.value = prompt;
+    resizeInput();
+    input.focus();
+    // Suggestions are actionable: start the request instead of silently filling the composer.
+    // If the visitor needs to sign in, sendMessage leaves the prompt in the composer.
+    $("chatForm").requestSubmit();
   }));
   $("memoryChip").addEventListener("click", () => {
     if (!memory.trim()) { showPanel("memory"); return; }

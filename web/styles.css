@@ -192,3 +192,13 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 .new-chat,.model-picker,.composer,.composer:focus-within,.auth-form input,.image-form textarea,.search-chats,.secondary-btn,.memory-card,.library-card,.notice,.modal,.memory-text,.account-cta:hover{border-color:var(--control-border)}
 .suggestion-list,.suggestion{border-color:var(--line)}
 button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* Keep the remaining legacy modal controls inside the new neutral palette. */
+.price-card,.price-card.featured{background:var(--panel2);border-color:var(--line)}
+.price-card>span,.price-card h3,.price-card h3 small,.price-card p,.price-card ul{color:var(--text)}
+.price-card h3 small,.price-card p{color:var(--muted)}
+.toggle input:checked+span{background:var(--accent)}
+.toggle span:before{background:var(--panel)}
+.modal::backdrop{backdrop-filter:none}
+.auth-brand b{font-family:var(--display);font-weight:600}
+.message-error .message-actions button:last-child{color:var(--accent)}

@@ -2,7 +2,8 @@
   "version": 2,
   "functions": {
     "app.py": {
-      "includeFiles": "web/**"
+      "includeFiles": "web/**",
+      "maxDuration": 60
     }
   },
   "buildCommand": "npm install --include=dev && npm run build:revenuecat"

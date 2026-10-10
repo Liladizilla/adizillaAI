@@ -311,7 +311,19 @@ let sendPasswordResetEmail, signOut, updateProfile;
       const body = document.createElement("div"); body.className = "message-content"; body.innerHTML = renderText(message.content);
       const actions = document.createElement("div"); actions.className = "message-actions";
       const copy = document.createElement("button"); copy.textContent = "Copy response"; copy.addEventListener("click", async () => { try { await navigator.clipboard.writeText(message.content); copy.textContent = "Copied"; } catch { toast("Clipboard access isn't available in this browser."); } });
-      actions.append(copy); body.append(actions); row.append(avatar, body);
+      actions.append(copy);
+      if (message.isError) {
+        const retry = document.createElement("button");
+        retry.textContent = "Retry";
+        retry.addEventListener("click", () => {
+          const chat = activeChat();
+          if (chat?.messages?.at(-1)?.isError) chat.messages.pop();
+          renderMessages();
+          sendMessage($("promptInput").value);
+        });
+        actions.append(retry);
+      }
+      body.append(actions); row.append(avatar, body);
     } else {
       const body = document.createElement("div"); body.className = "message-content"; body.textContent = message.content; row.append(body);
     }
@@ -418,8 +430,11 @@ let sendPasswordResetEmail, signOut, updateProfile;
       if (!response.ok) throw new Error(data.detail || "The request failed. Please try again.");
       chat.messages.push({ role: "assistant", content: data.answer }); chat.updatedAt = Date.now(); persistChats(); renderMessages();
     } catch (error) {
-      const message = error.message || "Could not reach AdizillaAI.";
-      chat.messages.push({ role: "assistant", content: "I couldn't complete that request. " + message, isError: true }); persistChats(); renderMessages();
+      if (error.name !== "AbortError") {
+        const message = error.message || "Could not reach AdizillaAI.";
+        $("promptInput").value = content; resizeInput();
+        chat.messages.push({ role: "assistant", content: "That one did not go through. Your message is still here. Try again? " + message, isError: true }); persistChats(); renderMessages();
+      }
     } finally {
       busy = false; activeChatController = null; $("sendBtn").textContent = "↑"; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
     }

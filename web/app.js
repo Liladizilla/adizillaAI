@@ -436,7 +436,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
         chat.messages.push({ role: "assistant", content: "That one did not go through. Your message is still here. Try again? " + message, isError: true }); persistChats(); renderMessages();
       }
     } finally {
-      busy = false; activeChatController = null; $("sendBtn").textContent = "↑"; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
+      busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ti ti-arrow-up" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
     }
   }
   function resizeInput() {

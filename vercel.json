@@ -4,5 +4,6 @@
     "app.py": {
       "includeFiles": "web/**"
     }
-  }
+  },
+  "buildCommand": "npm run build:revenuecat"
 }

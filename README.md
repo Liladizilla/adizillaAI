@@ -34,7 +34,7 @@ The old command-line chat remains available with `python main.py "Explain HTTP"`
 - Responsive dark-first chat workspace with light theme toggle.
 - New conversations, recent history, search, delete, export, and copy response.
 - Explicit opt-in memory text that can be edited, disabled, or cleared.
-- Browser-local storage for conversations and memory; no account sync yet.
+- Browser-local storage for memory plus Firestore-backed cloud conversation sync for signed-in accounts; guest conversations remain local.
 - Server-side API keys and a configurable OpenAI-compatible provider endpoint.
 - Clear handling for missing keys, rate limits, and provider errors.
 - Firebase ID-token verification plus Firestore-backed per-user chat limits (20 requests/day and 5/minute by default).
@@ -42,7 +42,7 @@ The old command-line chat remains available with `python main.py "Explain HTTP"`
 
 ## Important limitations before public launch
 
-- Browser-local history is tied to one browser/device and is not a cloud backup. Don't store secrets or sensitive data in memory.
+- Guest history and saved memory are tied to one browser/device. Signed-in conversations sync through Firestore, with up to 100 conversations per account and the latest 40 non-error messages (up to 4,000 characters each) stored per conversation. Export important conversations as an additional backup. Don't store secrets or sensitive data in memory.
 - The current plan selector is a UI preview only. There is no billing or paid access. The API enforces a basic per-user request limit through Firestore, but there is no token-based billing meter or subscription entitlement system yet.
 - Before accepting paying users, add authentication, a database with per-user access control, server-side usage metering and rate limits, payment webhooks, subscription entitlement checks, abuse protection, and a privacy/retention policy. Never expose a shared provider key to browsers.
 - This starter sends recent chat messages to the configured AI provider. Review that provider's terms and data handling before using real user data.
@@ -79,5 +79,6 @@ The frontend Web SDK configuration is public by design; the Admin service-accoun
 
 - Chat API requests require a valid Firebase ID token verified by Firebase Admin.
 - Browser-local chats and memory are namespaced by Firebase user ID to keep accounts separate on a shared browser.
-- **Cloud-synced chat history, cross-device memory sync, account deletion, token-based cost metering, and billing are not implemented yet.** Authentication creates and verifies identities, but it does not automatically store conversations in the cloud. The current request limits are a basic abuse-control measure, not a guarantee of a fixed monetary spend.
+- Signed-in chat history is synced through authenticated `/api/chats` endpoints and stored under each user's own Firestore collection. The API never accepts a user ID from the browser to choose the storage owner.
+- **Cross-device memory sync, account deletion, token-based cost metering, and billing are not implemented yet.** Chat history syncs for signed-in users, but there is no account deletion workflow or paid-plan enforcement. The current request limits are a basic abuse-control measure, not a guarantee of a fixed monetary spend.
 - For production launch, configure Firebase email/password and Google providers, authorized domains, security policies, backups, and abuse/rate limits before inviting a large user base.

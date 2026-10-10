@@ -1,21 +1,76 @@
 """AdizillaAI web backend. Provider credentials stay on the server."""
+import json
 import logging
 import os
 from pathlib import Path
 from typing import Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
+import firebase_admin
+from firebase_admin import auth as firebase_auth, credentials
 from pydantic import BaseModel, Field
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent
-app = FastAPI(title="AdizillaAI", version="0.2.2")
+app = FastAPI(title="AdizillaAI", version="0.3.0")
 app.mount("/assets", StaticFiles(directory=ROOT / "web"), name="assets")
+
+
+
+def firebase_web_config():
+    """Public Web SDK settings only; never expose the service-account secret."""
+    return {
+        "apiKey": os.getenv("FIREBASE_API_KEY", ""),
+        "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
+        "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
+        "appId": os.getenv("FIREBASE_APP_ID", ""),
+        "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
+        "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
+    }
+
+
+def get_firebase_admin_app():
+    """Initialize Firebase Admin from a server-only service account JSON secret."""
+    try:
+        return firebase_admin.get_app()
+    except ValueError:
+        pass
+    raw_service_account = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON", "")
+    project_id = os.getenv("FIREBASE_PROJECT_ID", "")
+    if not raw_service_account or not project_id:
+        return None
+    try:
+        credential = credentials.Certificate(json.loads(raw_service_account))
+        return firebase_admin.initialize_app(credential, {"projectId": project_id})
+    except Exception:
+        logger.exception("Firebase Admin initialization failed")
+        return None
+
+
+def require_firebase_user(authorization: str | None = Header(default=None)):
+    """Verify Firebase ID tokens server-side before granting access to the chat API."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Sign in to use AdizillaAI.")
+    token = authorization.split(" ", 1)[1].strip()
+    firebase_app = get_firebase_admin_app()
+    if not firebase_app:
+        raise HTTPException(status_code=503, detail="Authentication is not configured on the server yet.")
+    try:
+        return firebase_auth.verify_id_token(token, app=firebase_app, check_revoked=True)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Your session is invalid or expired. Sign in again.")
+
+
+@app.get("/api/auth/config")
+def auth_config():
+    config = firebase_web_config()
+    configured = bool(config["apiKey"] and config["authDomain"] and config["projectId"] and config["appId"])
+    return {"configured": configured, "firebase": config if configured else None}
 
 
 class Message(BaseModel):
@@ -67,7 +122,8 @@ def health():
 
 
 @app.post("/api/chat")
-def chat(payload: ChatRequest):
+def chat(payload: ChatRequest, user: dict = Depends(require_firebase_user)):
+    user_uid = user.get("uid", "unknown")
     config = provider_config()
     if not config or not config["api_key"]:
         raise HTTPException(
@@ -121,8 +177,8 @@ def chat(payload: ChatRequest):
     except Exception as exc:
         status = getattr(exc, "status_code", None)
         logger.error(
-            "AI provider request failed: error_type=%s status=%s provider=%s model=%s provider_error=%s",
-            type(exc).__name__, status, provider, model, str(exc)[:700],
+            "AI provider request failed: uid=%s error_type=%s status=%s provider=%s model=%s provider_error=%s",
+            user_uid, type(exc).__name__, status, provider, model, str(exc)[:700],
         )
         if status == 429:
             raise HTTPException(status_code=429, detail="The provider quota or rate limit was reached. Try later.")

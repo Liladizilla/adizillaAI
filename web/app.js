@@ -1,9 +1,6 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-import {
-  getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
-  signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider,
-  sendPasswordResetEmail, signOut, updateProfile
-} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+let initializeApp, getAuth, onAuthStateChanged, createUserWithEmailAndPassword;
+let signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider;
+let sendPasswordResetEmail, signOut, updateProfile;
 
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -311,6 +308,18 @@ import {
         renderAccount();
         return false;
       }
+      const appSdk = await import("https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js");
+      const authSdk = await import("https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js");
+      initializeApp = appSdk.initializeApp;
+      getAuth = authSdk.getAuth;
+      onAuthStateChanged = authSdk.onAuthStateChanged;
+      createUserWithEmailAndPassword = authSdk.createUserWithEmailAndPassword;
+      signInWithEmailAndPassword = authSdk.signInWithEmailAndPassword;
+      signInWithPopup = authSdk.signInWithPopup;
+      GoogleAuthProvider = authSdk.GoogleAuthProvider;
+      sendPasswordResetEmail = authSdk.sendPasswordResetEmail;
+      signOut = authSdk.signOut;
+      updateProfile = authSdk.updateProfile;
       const firebaseApp = initializeApp(config.firebase);
       firebaseAuth = getAuth(firebaseApp);
       firebaseReady = true;

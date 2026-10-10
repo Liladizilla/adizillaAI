@@ -110,7 +110,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
       updatedAt: Number(chat.updatedAt) || Date.now(),
       messages: (Array.isArray(chat.messages) ? chat.messages : []).filter(m => !m.isError).slice(-60).map(m => ({
         role: m.role === "assistant" ? "assistant" : "user",
-        content: String(m.content || "").slice(-8000)
+        content: String(m.content || "").slice(0, 8000)
       }))
     };
     await cloudRequest("/api/chats/" + encodeURIComponent(chat.id), { method: "PUT", body: JSON.stringify(payload) });

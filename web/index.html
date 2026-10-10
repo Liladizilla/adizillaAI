@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0F1311">
-  <meta name="description" content="AdizillaAI — a calmer workspace for thinking, creating, and getting things done.">
+  <meta name="description" content="AdizillaAI ,  a calmer workspace for thinking, creating, and getting things done.">
   <title>AdizillaAI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,12 +49,12 @@
 <button class="suggestion" data-prompt="Compare these options using cost, effort, risks, and long-term value: [list the options]"><span>Compare options by cost, effort, and risk</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>
 <button class="suggestion" data-prompt="Teach me [topic] from the basics, with one practical example and a short exercise."><span>Learn a topic with an example and exercise</span><span class="suggestion-arrow" aria-hidden="true">↗</span></button></div></div>
           <div id="messages" class="messages" aria-live="polite"></div>
-          <div id="typing" class="typing hidden"><span></span><span></span><span></span><b>Adizilla is thinking</b></div>
+          <div id="typing" class="typing hidden" role="status" aria-live="polite">Reading your message…</div>
         </div>
         <div class="composer-zone">
           <form id="chatForm" class="composer">
             <textarea id="promptInput" rows="1" maxlength="12000" placeholder="Type a question, paste a draft, or drop a file." aria-label="Message AdizillaAI"></textarea>
-            <div id="attachmentList" class="attachment-list hidden" aria-live="polite"></div><div class="composer-footer"><div class="composer-tools"><button type="button" class="tool-btn" id="memoryChip" title="Memory is off. Select to change memory settings." aria-pressed="false"><span aria-hidden="true"><i class="ti ti-brain"></i></span> <span id="memoryChipText">Memory off</span></button><span class="tool-separator"></span><button type="button" class="tool-btn" id="attachInfo" title="Attach images or documents">＋ <span>Attach</span></button><input id="attachmentInput" class="hidden" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.tsv,.json,.xml,.py,.js,.ts,.jsx,.tsx,.html,.css,.java,.c,.h,.cpp,.rs,.sh,.yaml,.yml,.toml,.log"><span class="attachment-count" id="attachmentCount" aria-live="polite"></span><button type="button" class="tool-btn image-create-btn" id="createImageBtn" aria-pressed="false" title="Create an image using your daily allowance"><span aria-hidden="true"><i class="ti ti-photo"></i></span> <span id="imageModeLabel">Create image</span></button></div><div class="send-area"><span class="input-hint" id="inputHint">Enter to send</span><button type="submit" id="sendBtn" class="send-btn" aria-label="Send message"><span>↑</span></button></div></div>
+            <div id="attachmentList" class="attachment-list hidden" aria-live="polite"></div><div class="composer-footer"><div class="composer-tools"><button type="button" class="tool-btn" id="memoryChip" title="Memory is off. Select to change memory settings." aria-pressed="false"><span aria-hidden="true"><i class="ti ti-brain"></i></span> <span id="memoryChipText">Memory off</span></button><span class="tool-separator"></span><button type="button" class="tool-btn" id="attachInfo" title="Attach images or documents">＋ <span>Attach</span></button><input id="attachmentInput" class="hidden" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.tsv,.json,.xml,.py,.js,.ts,.jsx,.tsx,.html,.css,.java,.c,.h,.cpp,.rs,.sh,.yaml,.yml,.toml,.log"><span class="attachment-count" id="attachmentCount" aria-live="polite"></span><button type="button" class="tool-btn image-create-btn" id="createImageBtn" aria-pressed="false" title="Create an image using your daily allowance"><span aria-hidden="true"><i class="ti ti-photo"></i></span> <span id="imageModeLabel">Create image</span></button></div><div class="send-area"><span class="input-hint" id="inputHint">Enter to send</span><button type="submit" id="sendBtn" class="send-btn" aria-label="Send message" disabled><i class="ti ti-arrow-up" aria-hidden="true"></i></button></div></div>
           </form>
           <p class="disclaimer">AdizillaAI can make mistakes. Check important information.</p>
         </div>

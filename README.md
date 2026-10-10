@@ -93,7 +93,7 @@ The server enforces limits through Firestore counters:
 - `DAILY_CHAT_LIMIT`: defaults to 20 requests per user per UTC day.
 - `MINUTE_CHAT_LIMIT`: defaults to 5 requests per user per minute.
 
-If Firestore is unavailable, chat requests fail closed with HTTP 503 rather than bypassing usage protection. These request caps are basic abuse controls, **not** a fixed-cost guarantee: token-level metering, subscription entitlements, and billing are not implemented.
+If Firestore is unavailable, chat requests fail closed with HTTP 503 rather than bypassing usage protection. These request caps are basic abuse controls, **not** a fixed-cost guarantee: token-level metering and server-side subscription entitlement enforcement are not implemented.
 
 ## Attachments
 

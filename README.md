@@ -22,6 +22,7 @@
 - Firestore-backed conversation history for signed-in accounts. Guest history stays in the current browser.
 - User-controlled memory that can be edited, enabled, disabled, or cleared.
 - File attachments for supported image formats, PDFs, Word documents, text, data, and code files.
+- On-demand image generation through the xAI Imagine API, with an account-level limit of three images per UTC day.
 - Server-side per-account chat limits, defaulting to 20 requests per UTC day and 5 per minute.
 - A configurable OpenAI-compatible API provider, with credentials kept on the server.
 - A clearly labelled Pro preview. Billing and paid-plan entitlements are not active.
@@ -79,6 +80,10 @@ The hosted app requires Firebase Authentication and Firestore.
 
 The Firebase Web SDK configuration is public by design. The service-account JSON is highly sensitive. Restrict the Web API key to the APIs this app needs.
 
+### Image generation
+
+Image creation uses the xAI Imagine API. Configure `IMAGE_API_KEY` in Vercel (or use an existing `GROK_02` key), and optionally set `IMAGE_BASE_URL` and `IMAGE_MODEL`. The default model is `grok-imagine-image-2.0`. Image generation may incur separate provider charges; the app limits each account to three generations per UTC day. Generated image URLs are temporary, so save an image you want to keep.
+
 ### Usage limits
 
 The server enforces limits through Firestore counters:
@@ -104,7 +109,7 @@ PDFs are processed by extracting text; scanned PDFs without a text layer may not
 - Cloud history is limited to 100 conversations per account and up to 40 recent messages per conversation. Export important chats as a backup.
 - Saved memory remains local to the browser and does not sync between devices.
 - The Pro screen is a product preview only. There is no payment processing, paid access control, or subscription management.
-- Image generation, web search, account deletion, long-term synced memory, and token-based cost metering are not implemented.
+- Web search, account deletion, long-term synced memory, and token-based cost metering are not implemented.
 - Recent chat context and any attachments are sent to the configured AI provider. Review that provider's privacy terms before using real user data.
 
 Before a public paid launch, add billing webhooks and server-side entitlements, token-level usage metering, stronger abuse controls, account deletion/export workflows, backups, and a clear privacy and retention policy.

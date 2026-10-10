@@ -17,6 +17,10 @@ let sendPasswordResetEmail, signOut, updateProfile;
   let firebaseReady = false;
   let authMode = "signin";
   let authInitialization = Promise.resolve(false);
+  let cloudSyncStatus = "Local device";
+  let cloudSyncTimer = null;
+  let cloudSyncRunning = false;
+  const deletedChatsKey = "adizilla.deleted-cloud-chats.v1";
   const panels = { chat: $("chatPanel"), memory: $("memoryPanel"), library: $("libraryPanel") };
   function scopedKey(key) { return firebaseUser ? key.replace("adizilla.", "adizilla.user." + firebaseUser.uid + ".") : key; }
   function read(key, fallback) { try { const value = localStorage.getItem(scopedKey(key)); return value === null ? fallback : JSON.parse(value); } catch { return fallback; } }
@@ -25,7 +29,98 @@ let sendPasswordResetEmail, signOut, updateProfile;
   function escapeHTML(value) { return String(value).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
   function toast(message) { $("infoTitle").textContent = "Just so you know"; $("infoText").textContent = message; $("infoDialog").showModal(); }
   function activeChat() { return chats.find(c => c.id === currentId); }
-  function persistChats() { save(KEYS.chats, chats); renderHistory(); renderLibrary(); }
+  function persistChats() {
+    save(KEYS.chats, chats);
+    renderHistory();
+    renderLibrary();
+    scheduleCloudSync();
+  }
+  async function cloudRequest(path, options = {}) {
+    if (!firebaseUser) throw new Error("Sign in to sync your conversations.");
+    const token = await firebaseUser.getIdToken();
+    const response = await fetch(path, {
+      ...options,
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token, ...(options.headers || {}) }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || "Cloud sync failed.");
+    return data;
+  }
+  function scheduleCloudSync() {
+    if (!firebaseUser || cloudSyncRunning) return;
+    clearTimeout(cloudSyncTimer);
+    cloudSyncTimer = setTimeout(() => syncCloudChats().catch(() => {
+      cloudSyncStatus = "Cloud sync paused";
+      renderAccount();
+    }), 900);
+  }
+  async function syncCloudChats() {
+    if (!firebaseUser || cloudSyncRunning) return;
+    cloudSyncRunning = true;
+    cloudSyncStatus = "Syncing cloud history…";
+    renderAccount();
+    try {
+      const tombstones = read(deletedChatsKey, []);
+      for (const chatId of tombstones) {
+        try { await cloudRequest("/api/chats/" + encodeURIComponent(chatId), { method: "DELETE" }); }
+        catch (error) { if (!String(error.message).includes("not found")) throw error; }
+      }
+      if (tombstones.length) save(deletedChatsKey, []);
+      const listing = await cloudRequest("/api/chats");
+      const remote = new Map((listing.chats || []).map(chat => [chat.id, chat]));
+      const local = [...chats];
+      const merged = [...local];
+      for (const summary of remote.values()) {
+        const localIndex = merged.findIndex(chat => chat.id === summary.id);
+        if (localIndex < 0) {
+          const full = await cloudRequest("/api/chats/" + encodeURIComponent(summary.id));
+          merged.push(full);
+        } else if (Number(summary.updatedAt || 0) > Number(merged[localIndex].updatedAt || 0)) {
+          const full = await cloudRequest("/api/chats/" + encodeURIComponent(summary.id));
+          merged[localIndex] = full;
+        } else if (Number(merged[localIndex].updatedAt || 0) > Number(summary.updatedAt || 0)) {
+          await uploadChat(merged[localIndex]);
+        }
+        remote.delete(summary.id);
+      }
+      for (const chat of merged) {
+        if (!listing.chats?.some(item => item.id === chat.id)) await uploadChat(chat);
+      }
+      chats = merged.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0)).slice(0, 100);
+      save(KEYS.chats, chats);
+      currentId = chats.some(chat => chat.id === currentId) ? currentId : null;
+      renderHistory();
+      renderMessages();
+      renderLibrary();
+      cloudSyncStatus = "Cloud sync on";
+      renderAccount();
+    } catch (error) {
+      cloudSyncStatus = "Cloud sync paused";
+      renderAccount();
+      throw error;
+    } finally {
+      cloudSyncRunning = false;
+    }
+  }
+  async function uploadChat(chat) {
+    const payload = {
+      id: chat.id,
+      title: String(chat.title || "New conversation").slice(0, 200),
+      createdAt: Number(chat.createdAt) || Date.now(),
+      updatedAt: Number(chat.updatedAt) || Date.now(),
+      messages: (Array.isArray(chat.messages) ? chat.messages : []).filter(m => !m.isError).slice(-100).map(m => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: String(m.content || "").slice(0, 12000)
+      }))
+    };
+    await cloudRequest("/api/chats/" + encodeURIComponent(chat.id), { method: "PUT", body: JSON.stringify(payload) });
+  }
+  function markCloudChatDeleted(chatId) {
+    if (!firebaseUser || !chatId) return;
+    const tombstones = read(deletedChatsKey, []);
+    if (!tombstones.includes(chatId)) save(deletedChatsKey, [...tombstones, chatId]);
+    scheduleCloudSync();
+  }
   function newChat() {
     currentId = id();
     chats.unshift({ id: currentId, title: "New conversation", createdAt: Date.now(), updatedAt: Date.now(), messages: [] });
@@ -49,7 +144,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
       const row = document.createElement("div"); row.className = "history-item" + (chat.id === currentId ? " selected" : "");
       const open = document.createElement("button"); open.className = "history-title"; open.textContent = chat.title; open.title = chat.title; open.addEventListener("click", () => openChat(chat.id));
       const del = document.createElement("button"); del.className = "history-delete"; del.textContent = "×"; del.title = "Delete conversation"; del.setAttribute("aria-label", "Delete " + chat.title);
-      del.addEventListener("click", (event) => { event.stopPropagation(); chats = chats.filter(c => c.id !== chat.id); if (currentId === chat.id) currentId = null; persistChats(); renderMessages(); });
+      del.addEventListener("click", (event) => { event.stopPropagation(); markCloudChatDeleted(chat.id); chats = chats.filter(c => c.id !== chat.id); if (currentId === chat.id) currentId = null; persistChats(); renderMessages(); });
       row.append(open, del); list.append(row);
     });
   }
@@ -281,9 +376,9 @@ let sendPasswordResetEmail, signOut, updateProfile;
   function renderAccount() {
     const signedIn = Boolean(firebaseUser);
     $("accountActionTitle").textContent = signedIn ? "Account settings" : "Sign in or create account";
-    $("accountActionSub").textContent = signedIn ? "Signed in · local data only" : (firebaseReady ? "Your personal workspace" : "Account setup required");
+    $("accountActionSub").textContent = signedIn ? cloudSyncStatus : (firebaseReady ? "Your personal workspace" : "Account setup required");
     $("profileName").textContent = signedIn ? (firebaseUser.displayName || "Your account") : "Guest workspace";
-    $("profileSub").textContent = signedIn ? (firebaseUser.email || "Signed in") : "Local device · no account";
+    $("profileSub").textContent = signedIn ? (firebaseUser.email || "Signed in") + " · " + cloudSyncStatus : "Local device · no account";
     $("profileAvatar").textContent = signedIn ? (firebaseUser.displayName || firebaseUser.email || "A").trim().charAt(0).toUpperCase() : "G";
     if (signedIn) $("authSignedInEmail").textContent = firebaseUser.email || firebaseUser.displayName || "Signed-in account";
   }
@@ -329,7 +424,15 @@ let sendPasswordResetEmail, signOut, updateProfile;
           const previousUid = firebaseUser?.uid || null;
           firebaseUser = user;
           renderAccount();
-          if (previousUid !== (user?.uid || null)) reloadWorkspaceForCurrentUser();
+          if (previousUid !== (user?.uid || null)) {
+            cloudSyncStatus = user ? "Syncing cloud history…" : "Local device";
+            reloadWorkspaceForCurrentUser();
+            if (user) syncCloudChats().catch(() => {
+              cloudSyncStatus = "Cloud sync paused";
+              renderAccount();
+              toast("You are signed in, but cloud history could not sync. Your local conversations are still available.");
+            });
+          }
           if (firstState) { firstState = false; resolve(true); }
         });
       });
@@ -447,7 +550,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("upgradeSide").addEventListener("click", () => openDialog("upgradeDialog")); $("upgradeTop").addEventListener("click", () => openDialog("upgradeDialog"));
   $("notifyUpgrade").addEventListener("click", () => { $("upgradeDialog").close(); toast("Launch notifications are not connected yet. Premium billing and account infrastructure must be added before sign-ups can be collected."); });
   $("settingsBtn").addEventListener("click", () => openDialog("settingsDialog"));
-  $("clearChats").addEventListener("click", () => { chats = []; currentId = null; persistChats(); renderMessages(); $("settingsDialog").close(); });
+  $("clearChats").addEventListener("click", () => { chats.forEach(chat => markCloudChatDeleted(chat.id)); chats = []; currentId = null; persistChats(); renderMessages(); $("settingsDialog").close(); });
   $("clearMemory").addEventListener("click", () => { if (!save(KEYS.memory, "") || !save(KEYS.enabled, false)) return; memory = ""; memoryDraft = ""; memoryEnabled = false; syncMemoryUI(); $("settingsDialog").close(); toast("Saved memory cleared from this browser."); });
   $("attachInfo").addEventListener("click", () => toast("File attachments are on the roadmap. The current chat endpoint accepts text only."));
   $("openSidebar").addEventListener("click", () => { $("sidebar").classList.add("open"); $("scrim").classList.add("show"); });

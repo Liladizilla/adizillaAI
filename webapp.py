@@ -24,7 +24,7 @@ app.mount("/assets", StaticFiles(directory=ROOT / "web"), name="assets")
 
 def firebase_web_config():
     """Public Web SDK settings only; never expose the service-account secret."""
-    return {
+    values = {
         "apiKey": os.getenv("FIREBASE_API_KEY", ""),
         "authDomain": os.getenv("FIREBASE_AUTH_DOMAIN", ""),
         "projectId": os.getenv("FIREBASE_PROJECT_ID", ""),
@@ -32,6 +32,7 @@ def firebase_web_config():
         "storageBucket": os.getenv("FIREBASE_STORAGE_BUCKET", ""),
         "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
     }
+    return {key: value for key, value in values.items() if value}
 
 
 def get_firebase_admin_app():

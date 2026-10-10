@@ -1,3 +1,10 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider,
+  sendPasswordResetEmail, signOut, updateProfile
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
 (() => {
   const $ = (id) => document.getElementById(id);
   const KEYS = { chats: "adizilla.chats.v1", memory: "adizilla.memory.v1", enabled: "adizilla.memory-enabled.v1", theme: "adizilla.theme.v1" };
@@ -8,9 +15,15 @@
   let currentId = null;
   let busy = false;
   let theme = read(KEYS.theme, "dark");
+  let firebaseAuth = null;
+  let firebaseUser = null;
+  let firebaseReady = false;
+  let authMode = "signin";
+  let authInitialization = Promise.resolve(false);
   const panels = { chat: $("chatPanel"), memory: $("memoryPanel"), library: $("libraryPanel") };
-  function read(key, fallback) { try { const value = localStorage.getItem(key); return value === null ? fallback : JSON.parse(value); } catch { return fallback; } }
-  function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { toast("Browser storage could not save this change. Export your chats and free browser storage before trying again."); return false; } }
+  function scopedKey(key) { return firebaseUser ? key.replace("adizilla.", "adizilla.user." + firebaseUser.uid + ".") : key; }
+  function read(key, fallback) { try { const value = localStorage.getItem(scopedKey(key)); return value === null ? fallback : JSON.parse(value); } catch { return fallback; } }
+  function save(key, value) { try { localStorage.setItem(scopedKey(key), JSON.stringify(value)); return true; } catch { toast("Browser storage could not save this change. Export your chats and free browser storage before trying again."); return false; } }
   function id() { return globalThis.crypto?.randomUUID?.() || String(Date.now()) + Math.random().toString(36).slice(2); }
   function escapeHTML(value) { return String(value).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
   function toast(message) { $("infoTitle").textContent = "Just so you know"; $("infoText").textContent = message; $("infoDialog").showModal(); }
@@ -217,6 +230,8 @@
   }
   async function sendMessage(content) {
     content = content.trim(); if (!content || busy) return;
+    await authInitialization;
+    if (!firebaseUser) { setAuthMode("signin"); openDialog("authDialog"); return; }
     if (!currentId || !activeChat()) { currentId = id(); chats.unshift({ id: currentId, title: "New conversation", createdAt: Date.now(), updatedAt: Date.now(), messages: [] }); }
     const chat = activeChat(); chat.messages.push({ role: "user", content });
     if (chat.messages.filter(m => m.role === "user").length === 1) chat.title = content.slice(0, 48) + (content.length > 48 ? "…" : "");
@@ -224,7 +239,8 @@
     busy = true; $("sendBtn").disabled = true; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
     try {
       const recent = chat.messages.filter(m => !m.isError).slice(-24).map(m => ({ role: m.role, content: m.content }));
-      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: recent, memory: memoryEnabled ? memory : "" }) });
+      const idToken = await firebaseUser.getIdToken();
+      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify({ messages: recent, memory: memoryEnabled ? memory : "" }) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "The request failed. Please try again.");
       chat.messages.push({ role: "assistant", content: data.answer }); chat.updatedAt = Date.now(); persistChats(); renderMessages();
@@ -242,6 +258,164 @@
     try { const res = await fetch("/api/health"); const data = await res.json(); const pill = document.querySelector(".provider-pill"); pill.classList.toggle("online", data.provider_configured); pill.classList.toggle("offline", !data.provider_configured); $("providerStatus").textContent = data.provider_configured ? (data.provider || "AI") + " ready" : "API key needed"; }
     catch { document.querySelector(".provider-pill").classList.add("offline"); $("providerStatus").textContent = "Backend unavailable"; }
   }
+  function setAuthError(message) {
+    const error = $("authError");
+    error.textContent = message || "";
+    error.classList.toggle("hidden", !message);
+  }
+  function setAuthMode(mode) {
+    authMode = mode;
+    $("authFormState").classList.toggle("hidden", Boolean(firebaseUser));
+    $("authSignedInState").classList.toggle("hidden", !firebaseUser);
+    $("authNameWrap").classList.toggle("hidden", mode !== "signup");
+    $("authTitle").textContent = mode === "signup" ? "Make it yours." : "Welcome back.";
+    $("authEyebrow").textContent = mode === "signup" ? "CREATE YOUR ACCOUNT" : "YOUR WORKSPACE";
+    $("authDescription").textContent = mode === "signup" ? "Create an account to start using your personal AI workspace." : "Sign in to continue to your personal AdizillaAI workspace.";
+    $("authSubmit").textContent = mode === "signup" ? "Create account" : "Sign in";
+    $("authPassword").autocomplete = mode === "signup" ? "new-password" : "current-password";
+    $("authSwitchCopy").textContent = mode === "signup" ? "Already have an account?" : "New to AdizillaAI?";
+    $("authSwitchBtn").textContent = mode === "signup" ? "Sign in" : "Create account";
+    $("resetPasswordBtn").classList.toggle("hidden", mode === "signup");
+    $("googleAuthBtn").classList.remove("hidden");
+    setAuthError("");
+    if (firebaseUser) $("authSignedInEmail").textContent = firebaseUser.email || firebaseUser.displayName || "Signed-in account";
+  }
+  function renderAccount() {
+    const signedIn = Boolean(firebaseUser);
+    $("accountActionTitle").textContent = signedIn ? "Account settings" : "Sign in or create account";
+    $("accountActionSub").textContent = signedIn ? "Signed in · local data only" : (firebaseReady ? "Your personal workspace" : "Account setup required");
+    $("profileName").textContent = signedIn ? (firebaseUser.displayName || "Your account") : "Guest workspace";
+    $("profileSub").textContent = signedIn ? (firebaseUser.email || "Signed in") : "Local device · no account";
+    $("profileAvatar").textContent = signedIn ? (firebaseUser.displayName || firebaseUser.email || "A").trim().charAt(0).toUpperCase() : "G";
+    if (signedIn) $("authSignedInEmail").textContent = firebaseUser.email || firebaseUser.displayName || "Signed-in account";
+  }
+  function reloadWorkspaceForCurrentUser() {
+    chats = read(KEYS.chats, []);
+    memory = read(KEYS.memory, "");
+    memoryDraft = memory;
+    memoryEnabled = read(KEYS.enabled, false);
+    currentId = null;
+    syncMemoryUI();
+    renderHistory();
+    renderMessages();
+    renderLibrary();
+  }
+  async function initializeFirebaseAuth() {
+    try {
+      const response = await fetch("/api/auth/config");
+      const config = await response.json();
+      if (!response.ok || !config.configured || !config.firebase) {
+        firebaseReady = false;
+        setAuthError("Authentication setup is incomplete. The site owner must configure Firebase in the server environment.");
+        renderAccount();
+        return false;
+      }
+      const firebaseApp = initializeApp(config.firebase);
+      firebaseAuth = getAuth(firebaseApp);
+      firebaseReady = true;
+      return await new Promise(resolve => {
+        let firstState = true;
+        onAuthStateChanged(firebaseAuth, user => {
+          const previousUid = firebaseUser?.uid || null;
+          firebaseUser = user;
+          renderAccount();
+          if (previousUid !== (user?.uid || null)) reloadWorkspaceForCurrentUser();
+          if (firstState) { firstState = false; resolve(true); }
+        });
+      });
+    } catch (error) {
+      firebaseReady = false;
+      setAuthError("Could not initialize authentication. Check Firebase configuration and authorized domains.");
+      renderAccount();
+      return false;
+    }
+  }
+  async function showAuthErrorFrom(error) {
+    const messages = {
+      "auth/email-already-in-use": "That email already has an account. Try signing in instead.",
+      "auth/invalid-email": "Enter a valid email address.",
+      "auth/weak-password": "Use a stronger password with at least 8 characters.",
+      "auth/invalid-credential": "Email or password is incorrect.",
+      "auth/user-not-found": "No account was found for that email.",
+      "auth/wrong-password": "Email or password is incorrect.",
+      "auth/popup-closed-by-user": "Google sign-in was cancelled.",
+      "auth/unauthorized-domain": "This domain is not authorized in Firebase Authentication settings.",
+      "auth/operation-not-allowed": "Enable this sign-in method in Firebase Console → Authentication → Sign-in method.",
+      "auth/too-many-requests": "Too many attempts. Wait a little and try again."
+    };
+    setAuthError(messages[error.code] || error.message || "Authentication failed. Please try again.");
+  }
+  $("accountBtn").addEventListener("click", async () => {
+    await authInitialization;
+    setAuthMode(firebaseUser ? "signin" : "signin");
+    openDialog("authDialog");
+  });
+  $("authSwitchBtn").addEventListener("click", () => setAuthMode(authMode === "signup" ? "signin" : "signup"));
+  $("authForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    setAuthError("");
+    if (!firebaseReady || !firebaseAuth) {
+      setAuthError("Firebase is not configured yet. Add the Firebase Web config and server service-account secret to Vercel.");
+      return;
+    }
+    const email = $("authEmail").value.trim();
+    const password = $("authPassword").value;
+    const button = $("authSubmit");
+    button.disabled = true;
+    try {
+      if (authMode === "signup") {
+        const result = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+        const displayName = $("authName").value.trim();
+        if (displayName) await updateProfile(result.user, { displayName });
+      } else {
+        await signInWithEmailAndPassword(firebaseAuth, email, password);
+      }
+      $("authDialog").close();
+      $("authPassword").value = "";
+      toast(authMode === "signup" ? "Your account is ready. Your chats are currently saved on this device; cloud sync is the next step." : "You're signed in. Your personal workspace is ready on this device.");
+    } catch (error) {
+      await showAuthErrorFrom(error);
+    } finally {
+      button.disabled = false;
+    }
+  });
+  $("googleAuthBtn").addEventListener("click", async () => {
+    setAuthError("");
+    if (!firebaseReady || !firebaseAuth) {
+      setAuthError("Firebase is not configured yet. The site owner needs to finish setup.");
+      return;
+    }
+    try {
+      await signInWithPopup(firebaseAuth, new GoogleAuthProvider());
+      $("authDialog").close();
+      toast("Signed in with Google. Your chats are currently saved on this device; cloud sync is the next step.");
+    } catch (error) {
+      await showAuthErrorFrom(error);
+    }
+  });
+  $("resetPasswordBtn").addEventListener("click", async () => {
+    setAuthError("");
+    if (!firebaseReady || !firebaseAuth) { setAuthError("Firebase is not configured yet."); return; }
+    const email = $("authEmail").value.trim();
+    if (!email) { setAuthError("Enter your email address above, then tap Forgot password again."); return; }
+    try {
+      await sendPasswordResetEmail(firebaseAuth, email);
+      setAuthError("Password reset email sent. Check your inbox and spam folder.");
+    } catch (error) {
+      await showAuthErrorFrom(error);
+    }
+  });
+  $("signOutBtn").addEventListener("click", async () => {
+    if (!firebaseAuth) return;
+    try {
+      await signOut(firebaseAuth);
+      $("authDialog").close();
+      toast("Signed out. Your account-specific local workspace is kept separate from guest data on this device.");
+    } catch (error) {
+      await showAuthErrorFrom(error);
+    }
+  });
+
   function exportChats() {
     const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), chats }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "adizillaai-conversations.json"; a.click(); URL.revokeObjectURL(url);
@@ -273,5 +447,6 @@
   document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); newChat(); } if ((e.metaKey || e.ctrlKey) && e.key === "1") { e.preventDefault(); showPanel("chat"); } });
   document.body.classList.toggle("light-mode", theme === "light");
   syncMemoryUI(); renderHistory(); renderMessages(); renderLibrary(); checkHealth();
+  authInitialization = initializeFirebaseAuth();
   if (!chats.length) { /* The welcome screen is the intentional first-run state. */ } else { currentId = null; }
 })();

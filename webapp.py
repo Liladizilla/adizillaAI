@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 load_dotenv()
 logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent
-app = FastAPI(title="AdizillaAI", version="0.2.1")
+app = FastAPI(title="AdizillaAI", version="0.2.2")
 app.mount("/assets", StaticFiles(directory=ROOT / "web"), name="assets")
 
 
@@ -39,8 +39,6 @@ def provider_config():
             "model": os.getenv("AI_MODEL", "openai/gpt-oss-20b").strip(),
         }
 
-    # The Vercel variable grok_02 indicates an xAI/Grok key. Use xAI defaults
-    # instead of sending that key to the unrelated Groq endpoint.
     xai_key = os.getenv("GROK_02") or os.getenv("grok_02")
     if xai_key:
         return {
@@ -99,13 +97,22 @@ def chat(payload: ChatRequest):
     messages.extend({"role": item.role, "content": item.content.strip()} for item in payload.messages)
     try:
         with OpenAI(api_key=api_key, base_url=base_url, timeout=45.0, max_retries=1) as client:
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=0.6,
-                max_tokens=1600,
-            )
-        answer = response.choices[0].message.content
+            if provider == "xai":
+                # Grok 4.7 is designed for the Responses API; use the supported endpoint.
+                response = client.responses.create(
+                    model=model,
+                    input=messages,
+                    max_output_tokens=1600,
+                )
+                answer = response.output_text
+            else:
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    temperature=0.6,
+                    max_tokens=1600,
+                )
+                answer = response.choices[0].message.content
         if not answer or not answer.strip():
             raise HTTPException(status_code=502, detail="The model returned an empty response. Try again.")
         return {"answer": answer.strip(), "model": model}
@@ -114,11 +121,13 @@ def chat(payload: ChatRequest):
     except Exception as exc:
         status = getattr(exc, "status_code", None)
         logger.error(
-            "AI provider request failed: error_type=%s status=%s provider=%s model=%s",
-            type(exc).__name__, status, provider, model,
+            "AI provider request failed: error_type=%s status=%s provider=%s model=%s provider_error=%s",
+            type(exc).__name__, status, provider, model, str(exc)[:700],
         )
         if status == 429:
             raise HTTPException(status_code=429, detail="The provider quota or rate limit was reached. Try later.")
         if status in (401, 403):
             raise HTTPException(status_code=502, detail="The AI provider rejected the configured key or model. Check server settings.")
+        if status == 400:
+            raise HTTPException(status_code=502, detail="The AI provider rejected the request. Check the deployment logs for the provider's exact error message.") from exc
         raise HTTPException(status_code=502, detail="The AI provider request failed. Check the server logs and provider status.") from exc

@@ -366,10 +366,11 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const files = Array.from(fileList || []);
     for (const file of files) {
       if (pendingAttachments.length >= 4) { toast("Attach up to four files per message."); break; }
-      if (file.size > 5 * 1024 * 1024) { toast(file.name + " is over the 5 MB per-file limit."); continue; }
+      if (file.size > 2_500_000) { toast(file.name + " is over the 2.5 MB per-file limit."); continue; }
+      if (pendingAttachments.reduce((sum, item) => sum + (item.size || 0), 0) + file.size > 3_000_000) { toast("Keep all attachments under 3 MB combined."); break; }
       try {
         const data = await readFileAsBase64(file);
-        pendingAttachments.push({ name: file.name, mime_type: file.type || "application/octet-stream", data: data });
+        pendingAttachments.push({ name: file.name, mime_type: file.type || "application/octet-stream", data: data, size: file.size });
       } catch (error) {
         toast(error.message || "Could not read that file.");
       }

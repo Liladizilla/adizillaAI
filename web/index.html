@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101014">
+  <meta name="description" content="AdizillaAI — a calmer workspace for thinking, creating, and getting things done.">
+  <title>AdizillaAI — Think beyond</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-row">
+        <div class="brand-mark" aria-hidden="true"><span>✳</span></div>
+        <div class="brand-copy"><strong>adizilla<span>AI</span></strong><small>THINK BEYOND</small></div>
+        <button class="icon-btn mobile-only" id="closeSidebar" aria-label="Close sidebar">×</button>
+      </div>
+      <button class="new-chat" id="newChat"><span class="plus">＋</span> New conversation <kbd>⌘ K</kbd></button>
+      <div class="side-section">
+        <div class="section-heading"><span>WORKSPACE</span><button class="tiny-icon" id="searchToggle" title="Search conversations">⌕</button></div>
+        <input id="searchChats" class="search-chats hidden" placeholder="Search conversations…" aria-label="Search conversations">
+        <button class="nav-item active" data-panel="chat"><span class="nav-icon">◈</span> Chat <span class="nav-end">⌘ 1</span></button>
+        <button class="nav-item" data-panel="memory"><span class="nav-icon">✧</span> Memory <span class="nav-end" id="memoryCount">0</span></button>
+        <button class="nav-item" data-panel="library"><span class="nav-icon">▤</span> Library</button>
+      </div>
+      <div class="history-wrap">
+        <div class="section-heading"><span>RECENTS</span><span class="muted" id="chatCount">0</span></div>
+        <div id="chatList" class="chat-list"></div>
+        <p id="emptyHistory" class="empty-history">Your conversations will appear here.</p>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="plan-card">
+          <div class="plan-top"><span class="plan-icon">✦</span><span class="plan-label">FREE WORKSPACE</span><span class="status-dot"></span></div>
+          <p>More room for bigger ideas.</p>
+          <button id="upgradeSide" class="upgrade-link">Explore Adizilla Pro <span>↗</span></button>
+        </div>
+        <button class="profile-row" id="settingsBtn"><div class="avatar">A</div><div class="profile-copy"><strong>Guest workspace</strong><span>Local device · no account</span></div><span class="more">•••</span></button>
+      </div>
+    </aside>
+    <div class="mobile-scrim" id="scrim"></div>
+    <main class="main-area">
+      <header class="topbar">
+        <div class="top-left"><button class="icon-btn mobile-only" id="openSidebar" aria-label="Open sidebar">☰</button><span class="breadcrumb">Workspace <span>/</span> <b id="breadcrumbPage">Chat</b></span></div>
+        <div class="top-actions"><div class="provider-pill"><i></i><span id="providerStatus">Checking provider</span></div><button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle theme">◐</button><button class="upgrade-top" id="upgradeTop">Upgrade <span>✦</span></button></div>
+      </header>
+      <section id="chatPanel" class="panel active-panel">
+        <div class="conversation-scroll" id="conversationScroll">
+          <div class="welcome" id="welcome">
+            <div class="welcome-orb"><span>✳</span><i></i></div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> YOUR IDEAS, AMPLIFIED <span class="eyebrow-line"></span></div>
+            <h1>What are we<br><em>figuring out</em> today?</h1>
+            <p class="welcome-sub">A little more clarity. A lot more possibility.</p>
+            <div class="suggestion-grid">
+              <button class="suggestion" data-prompt="Help me turn a rough idea into a clear, actionable plan."><span class="suggestion-icon lavender">✧</span><span><b>Shape an idea</b><small>From vague thought to real plan</small></span><span class="suggestion-arrow">↗</span></button>
+              <button class="suggestion" data-prompt="Explain a complex topic in simple language, then give me an example."><span class="suggestion-icon blue">⌘</span><span><b>Learn something</b><small>Make the complicated click</small></span><span class="suggestion-arrow">↗</span></button>
+              <button class="suggestion" data-prompt="Help me write something clear, natural, and compelling. Ask for context only if you need it."><span class="suggestion-icon peach">✎</span><span><b>Write with me</b><small>Find the words that work</small></span><span class="suggestion-arrow">↗</span></button>
+              <button class="suggestion" data-prompt="Help me debug a technical problem. Start by identifying the likely causes and a safe way to test them."><span class="suggestion-icon mint">⌁</span><span><b>Solve a problem</b><small>Think it through, step by step</small></span><span class="suggestion-arrow">↗</span></button>
+            </div>
+          </div>
+          <div id="messages" class="messages" aria-live="polite"></div>
+          <div id="typing" class="typing hidden"><span></span><span></span><span></span><b>Adizilla is thinking</b></div>
+        </div>
+        <div class="composer-zone">
+          <form id="chatForm" class="composer">
+            <textarea id="promptInput" rows="1" maxlength="12000" placeholder="Ask anything. Start somewhere…" aria-label="Message AdizillaAI"></textarea>
+            <div class="composer-footer"><div class="composer-tools"><button type="button" class="tool-btn" id="memoryChip" title="Manage memory"><span>✧</span> <span id="memoryChipText">Memory off</span></button><span class="tool-separator"></span><button type="button" class="tool-btn" id="attachInfo" title="Attachments are planned">＋ <span>Attach</span></button></div><div class="send-area"><span class="input-hint">Enter to send · Shift + Enter for new line</span><button type="submit" id="sendBtn" class="send-btn" aria-label="Send message"><span>↑</span></button></div></div>
+          </form>
+          <p class="disclaimer">AdizillaAI can make mistakes. Check important information. <span>Built for curious minds.</span></p>
+        </div>
+      </section>
+      <section id="memoryPanel" class="panel content-panel hidden">
+        <div class="content-heading"><div class="eyebrow">PERSONALIZATION</div><h1>A little context.<br><em>A lot more you.</em></h1><p>Memory lets Adizilla remember details you choose to keep, so you don't have to start from zero every time.</p></div>
+        <div class="memory-card"><div class="card-title"><div><span class="card-symbol">✧</span><b>Your saved memories</b></div><label class="toggle"><input id="memoryEnabled" type="checkbox"><span></span></label></div><p class="muted">Memory is stored in this browser on this device. It is sent with chat requests only when enabled.</p><textarea id="memoryText" class="memory-text" maxlength="3000" placeholder="For example: I prefer concise explanations, I'm learning Python, and I'm building a personal project…"></textarea><div class="memory-footer"><span id="memoryLength">0 / 3000</span><button class="primary-btn" id="saveMemory">Save memory</button></div></div>
+        <div class="notice"><span>ⓘ</span><p><b>Your data, your call.</b><br>Clear memory whenever you like. Browser storage is not account sync or encrypted cloud storage. Don't save passwords or sensitive secrets here.</p></div>
+      </section>
+      <section id="libraryPanel" class="panel content-panel hidden">
+        <div class="content-heading"><div class="eyebrow">YOUR WORKSPACE</div><h1>Keep the good<br><em>stuff close.</em></h1><p>Find and export conversations you've saved on this device.</p></div>
+        <div class="library-card"><div class="library-symbol">▤</div><div><b>Conversation library</b><p class="muted">Your chats are saved locally in this browser.</p></div><button class="secondary-btn" id="exportChats">Export chats ↗</button></div>
+        <div id="libraryList" class="library-list"></div>
+      </section>
+    </main>
+  </div>
+  <dialog id="upgradeDialog" class="modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">THE NEXT CHAPTER</div><h2>Make room for<br><em>bigger ideas.</em></h2><p>Adizilla Pro is being prepared. These plans are a product preview, not an active payment flow.</p><div class="pricing-grid"><div class="price-card"><span>FREE</span><h3>$0<small> / forever</small></h3><p>Everyday AI chat</p><ul><li>Local chat history</li><li>Basic saved memory</li><li>Provider free-tier limits</li></ul><button class="secondary-btn" data-close>Current plan</button></div><div class="price-card featured"><span>✦ ADIZILLA PRO</span><h3>Coming soon</h3><p>For your bigger workflows</p><ul><li>Long-term synced memory</li><li>Higher message limits</li><li>File & document tools</li><li>Advanced models and research</li><li>Export, folders & custom assistants</li></ul><button class="primary-btn" id="notifyUpgrade">Join the launch list</button></div></div><p class="modal-footnote">Premium features will need accounts, server-side plan checks, secure storage, and billing before launch.</p></dialog>
+  <dialog id="settingsDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">PREFERENCES</div><h2>Your workspace.</h2><p>Local-first for now. Accounts and synced conversations aren't connected yet.</p><button class="secondary-btn full-btn" id="clearChats">Delete all local conversations</button><button class="secondary-btn full-btn" id="clearMemory">Clear saved memory</button><p class="modal-footnote">This only affects this browser on this device.</p></dialog>
+  <dialog id="infoDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">IN THE WORKS</div><h2 id="infoTitle">Coming soon</h2><p id="infoText">This feature is not connected yet.</p><button class="primary-btn full-btn" data-close>Got it</button></dialog>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

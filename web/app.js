@@ -787,8 +787,16 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("closeSidebar").addEventListener("click", closeMobile); $("scrim").addEventListener("click", closeMobile);
   document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => btn.closest("dialog").close()));
   document.querySelectorAll("dialog").forEach(dialog => dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); }));
-  document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); newChat(); } if ((e.metaKey || e.ctrlKey) && e.key === "1") { e.preventDefault(); showPanel("chat"); } });
+  document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") { e.preventDefault(); newChat(); } if ((e.metaKey || e.ctrlKey) && e.key === "1") { e.preventDefault(); showPanel("chat"); } });
   applyTheme(theme); updateWelcomeGreeting();
+  const sidebar = $("sidebar");
+  sidebar.classList.toggle("collapsed", read("adizilla.sidebar-collapsed.v1", false));
+  $("collapseSidebar").addEventListener("click", () => {
+    const collapsed = sidebar.classList.toggle("collapsed");
+    save("adizilla.sidebar-collapsed.v1", collapsed);
+    $("collapseSidebar").title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+    $("collapseSidebar").setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+  });
   $("promptInput").addEventListener("paste", event => { const files = [...(event.clipboardData?.files || [])]; if (files.length) addAttachments(files); });
   $("chatForm").addEventListener("dragover", event => { event.preventDefault(); $("chatForm").classList.add("drag-over"); });
   $("chatForm").addEventListener("dragleave", event => { if (!event.relatedTarget || !$("chatForm").contains(event.relatedTarget)) $("chatForm").classList.remove("drag-over"); });

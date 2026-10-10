@@ -6,7 +6,8 @@
     "build:revenuecat": "vite build"
   },
   "dependencies": {
-    "@revenuecat/purchases-js": "^1.0.0"
+    "@revenuecat/purchases-js": "^1.0.0",
+    "@vercel/analytics": "^2.0.1"
   },
   "devDependencies": {
     "vite": "^6.0.0"

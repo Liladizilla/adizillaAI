@@ -203,8 +203,14 @@ def save_chat(chat_id: str, payload: ChatRecord, user: dict = Depends(require_fi
         raise HTTPException(status_code=400, detail="Conversation ID does not match the URL.")
     try:
         collection = get_user_chats_collection(user)
-        safe_messages = [message.model_dump() for message in payload.messages[-100:]]
-        collection.document(chat_id).set({
+        target = collection.document(chat_id)
+        if not target.get().exists and len(list(collection.limit(100).stream())) >= 100:
+            raise HTTPException(status_code=429, detail="Cloud history is limited to 100 conversations per account.")
+        safe_messages = [
+            {"role": message.role, "content": message.content[-8000:]}
+            for message in payload.messages[-60:]
+        ]
+        target.set({
             "title": payload.title.strip() or "New conversation",
             "createdAt": payload.createdAt,
             "updatedAt": payload.updatedAt,

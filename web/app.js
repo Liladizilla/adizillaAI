@@ -90,7 +90,7 @@
     const draft = $("memoryText").value.slice(0, 3000);
     const enabled = $("memoryEnabled").checked;
     if (!save(KEYS.memory, draft)) return;
-    if (!save(KEYS.enabled, enabled)) { save(KEYS.memory, memory); return; }
+    if (!save(KEYS.enabled, enabled)) { save(KEYS.memory, memory); $("memoryEnabled").checked = memoryEnabled; return; }
     memory = draft; memoryDraft = draft; memoryEnabled = enabled; syncMemoryUI();
     $("infoTitle").textContent = "Memory updated"; $("infoText").textContent = memoryEnabled ? "Your approved memory is saved on this device and will be included in future chat requests." : "Memory is saved locally but will not be sent with chat requests while disabled."; $("infoDialog").showModal();
   }

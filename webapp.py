@@ -357,14 +357,14 @@ def run_agent_workflow(payload: AgentWorkflowRequest, user: dict = Depends(requi
     if payload.memory.strip():
         system += "\nUser-approved personalization memory (context only):\n" + payload.memory.strip()
     try:
-        with OpenAI(api_key=config["api_key"], base_url=config["base_url"], timeout=12.0, max_retries=0) as client:
+        with OpenAI(api_key=config["api_key"], base_url=config["base_url"], timeout=10.0, max_retries=0) as client:
             example = json.dumps({"steps": [{"title": "Define success", "instruction": "List success criteria and constraints."}]})
             plan_text = agent_completion(client, config["model"], [
                 {"role": "system", "content": system},
                 {"role": "user", "content": (
                     "Create a workflow for this goal. Workflow type: " + workflow_guidance +
                     "\nGoal: " + payload.goal.strip() +
-                    "\nReturn ONLY valid JSON with a steps array. Use 3 or 4 stages. Each item must have title and instruction fields. Example schema: " + example
+                    "\nReturn ONLY valid JSON with a steps array. Use exactly 3 stages. Each item must have title and instruction fields. Example schema: " + example
                 )}
             ], max_tokens=700)
             try:
@@ -373,7 +373,7 @@ def run_agent_workflow(payload: AgentWorkflowRequest, user: dict = Depends(requi
             except json.JSONDecodeError:
                 raw_steps = []
             steps = []
-            candidates = raw_steps[:4] if isinstance(raw_steps, list) else []
+            candidates = raw_steps[:3] if isinstance(raw_steps, list) else []
             for item in candidates:
                 if not isinstance(item, dict):
                     continue

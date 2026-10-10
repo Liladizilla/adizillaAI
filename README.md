@@ -1,84 +1,113 @@
 # AdizillaAI
 
-AdizillaAI is an AI chat workspace with a responsive chat UI, locally saved conversations, explicit user-controlled memory, and a provider-configurable Python API. The current version is a **local-first starter**, not a launched subscription service.
+**Think beyond.** AdizillaAI is a personal AI workspace built around focused conversations, user-controlled memory, cloud-synced chat history, and file-aware assistance.
 
-## Run the web app
+- **Live app:** https://adizillaai.vercel.app
+- **Source:** https://github.com/Liladizilla/adizillaAI
+- **Stack:** Python · FastAPI · vanilla JavaScript · Firebase Authentication · Firestore · Vercel
 
-1. Install Python 3.11+.
-2. Copy `.env.example` to `.env`.
-3. Create a free API key with [Groq](https://console.groq.com/) and set `AI_API_KEY` in `.env`. The default endpoint/model use Groq's OpenAI-compatible API. Free tiers have provider-enforced quotas and may change.
-4. Install dependencies and start the app:
+## What it can do
 
-```bash
-python -m pip install -r requirements.txt
-uvicorn webapp:app --reload
-```
+- Responsive dark-first workspace with a light theme, recent conversations, search, export, and response copying.
+- Firebase email/password and Google sign-in, password reset, and server-side ID-token verification.
+- Firestore-backed conversation history for signed-in accounts. Guest history stays in the current browser.
+- User-controlled memory that can be edited, enabled, disabled, or cleared.
+- File attachments for supported image formats, PDFs, Word documents, text, data, and code files.
+- Server-side per-account chat limits, defaulting to 20 requests per UTC day and 5 per minute.
+- A configurable OpenAI-compatible API provider, with credentials kept on the server.
+- A clearly labelled Pro preview. Billing and paid-plan entitlements are not active.
 
-Open `http://127.0.0.1:8000`.
+## Run locally
 
-### Alternative providers
+Requirements: Python 3.11 or newer.
 
-The backend uses the OpenAI-compatible chat-completions format. Change these server-side environment variables to switch providers:
+1. Clone the repository and enter the project directory.
+2. Create a local environment file:
 
-- `AI_PROVIDER`: display/status label only.
-- `AI_API_KEY`: secret API key; never put it in browser code or commit it.
-- `AI_BASE_URL`: provider's OpenAI-compatible base URL.
-- `AI_MODEL`: model ID available to that provider.
+   ```bash
+   cp .env.example .env
+   ```
 
-For [OpenRouter](https://openrouter.ai/), set `AI_BASE_URL=https://openrouter.ai/api/v1` and choose a currently available free model ID from [its free-model list](https://openrouter.ai/collections/free-models/). Free model availability and quotas can change, so don't hardcode a provider model forever.
+3. Add an API key for a compatible AI provider to `.env`. The default configuration uses Groq's OpenAI-compatible endpoint. Free model availability and limits can change.
+4. Install dependencies and start the server:
 
-The old command-line chat remains available with `python main.py "Explain HTTP"`; it uses `OPENAI_API_KEY` and `OPENAI_MODEL`.
+   ```bash
+   python -m pip install -r requirements.txt
+   uvicorn webapp:app --reload
+   ```
 
-## Included in this starter
+5. Open http://127.0.0.1:8000.
 
-- Responsive dark-first chat workspace with light theme toggle.
-- New conversations, recent history, search, delete, export, and copy response.
-- Explicit opt-in memory text that can be edited, disabled, or cleared.
-- Browser-local storage for memory plus Firestore-backed cloud conversation sync for signed-in accounts; guest conversations remain local.
-- Server-side API keys and a configurable OpenAI-compatible provider endpoint.
-- Clear handling for missing keys, rate limits, and provider errors.
-- Firebase ID-token verification plus Firestore-backed per-user chat limits (20 requests/day and 5/minute by default).
-- Free/Pro plan preview that clearly labels billing as not yet active.
+Never commit `.env`, provider API keys, Firebase service-account JSON, or other secrets.
 
-## Important limitations before public launch
+## Configuration
 
-- Guest history and saved memory are tied to one browser/device. Signed-in conversations sync through Firestore, with up to 100 conversations per account and the latest 40 non-error messages (up to 4,000 characters each) stored per conversation. Export important conversations as an additional backup. Don't store secrets or sensitive data in memory.
-- The current plan selector is a UI preview only. There is no billing or paid access. The API enforces a basic per-user request limit through Firestore, but there is no token-based billing meter or subscription entitlement system yet.
-- Before accepting paying users, add authentication, a database with per-user access control, server-side usage metering and rate limits, payment webhooks, subscription entitlement checks, abuse protection, and a privacy/retention policy. Never expose a shared provider key to browsers.
-- This starter sends recent chat messages to the configured AI provider. Review that provider's terms and data handling before using real user data.
-- Attachments, web search, synced memory, and advanced research are roadmap items, not implemented features.
+### AI provider
+
+Set these server-side environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `AI_API_KEY` | Secret API key for the configured provider |
+| `AI_PROVIDER` | Provider label used for status and routing |
+| `AI_BASE_URL` | OpenAI-compatible API base URL |
+| `AI_MODEL` | Model identifier supported by that provider |
+
+For OpenRouter, use `AI_BASE_URL=https://openrouter.ai/api/v1` and choose a currently available model from [OpenRouter's free-model list](https://openrouter.ai/collections/free-models/).
+
+The older command-line chat remains available with `python main.py "Explain HTTP"`; it uses `OPENAI_API_KEY` and `OPENAI_MODEL`.
+
+### Firebase and Firestore
+
+The hosted app requires Firebase Authentication and Firestore.
+
+1. Create a Firebase project and add a Web app.
+2. Enable **Email/Password** and **Google** in Authentication. Add `adizillaai.vercel.app` to the authorized domains.
+3. Set the public Web SDK values as Vercel environment variables: `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, and `FIREBASE_APP_ID`. Optional values are `FIREBASE_STORAGE_BUCKET` and `FIREBASE_MESSAGING_SENDER_ID`.
+4. Create a Firebase Admin service-account key and store its complete JSON only in the server-side Vercel variable `FIREBASE_SERVICE_ACCOUNT_JSON`. Never put it in browser code or GitHub.
+5. Create a Firestore database. The backend uses the Admin SDK for the `adizilla_usage` counters and each user's `adizilla_users/{uid}/chats` collection.
+6. Redeploy after changing environment variables.
+
+The Firebase Web SDK configuration is public by design. The service-account JSON is highly sensitive. Restrict the Web API key to the APIs this app needs.
+
+### Usage limits
+
+The server enforces limits through Firestore counters:
+
+- `DAILY_CHAT_LIMIT`: defaults to 20 requests per user per UTC day.
+- `MINUTE_CHAT_LIMIT`: defaults to 5 requests per user per minute.
+
+If Firestore is unavailable, chat requests fail closed with HTTP 503 rather than bypassing usage protection. These request caps are basic abuse controls, **not** a fixed-cost guarantee: token-level metering, subscription entitlements, and billing are not implemented.
+
+## Attachments
+
+The composer accepts up to four files per message, with a combined raw payload limit of 3 MB and a 2.5 MB per-file limit. Supported formats include:
+
+- Images: PNG, JPEG, WebP, GIF. Image understanding depends on whether the configured model supports vision.
+- Documents: text-based PDF and DOCX files.
+- Text and code: TXT, Markdown, CSV/TSV, JSON, XML, and common source/configuration files.
+
+PDFs are processed by extracting text; scanned PDFs without a text layer may not produce useful content. Attachments are sent to the configured AI provider with the request and are not stored as separate cloud files. Avoid uploading secrets or sensitive documents. Vercel's request-size limits also apply.
+
+## Data boundaries and current limitations
+
+- Signed-in conversation history syncs through authenticated API routes. The API derives the storage owner from the verified Firebase ID token, not a user ID supplied by the browser.
+- Cloud history is limited to 100 conversations per account and up to 40 recent messages per conversation. Export important chats as a backup.
+- Saved memory remains local to the browser and does not sync between devices.
+- The Pro screen is a product preview only. There is no payment processing, paid access control, or subscription management.
+- Image generation, web search, account deletion, long-term synced memory, and token-based cost metering are not implemented.
+- Recent chat context and any attachments are sent to the configured AI provider. Review that provider's privacy terms before using real user data.
+
+Before a public paid launch, add billing webhooks and server-side entitlements, token-level usage metering, stronger abuse controls, account deletion/export workflows, backups, and a clear privacy and retention policy.
 
 ## Tests
+
+Run the test suite with:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-Never commit `.env` or real API keys.
+## License
 
-## Authentication setup (required for the hosted app)
-
-The web app now uses Firebase Authentication for email/password accounts, Google sign-in, password resets, and sign-out. The FastAPI chat endpoint verifies Firebase ID tokens server-side; a client-side signed-in state alone is not trusted.
-
-1. Create or choose a project in [Firebase Console](https://console.firebase.google.com/), add a **Web app**, and copy its Web SDK configuration.
-2. In **Authentication → Sign-in method**, enable **Email/Password** and **Google**. In **Authentication → Settings → Authorized domains**, ensure `adizillaai.vercel.app` is listed.
-3. In **Project settings → General**, copy the Web app values into Vercel Production environment variables:
-   - `FIREBASE_API_KEY`
-   - `FIREBASE_AUTH_DOMAIN`
-   - `FIREBASE_PROJECT_ID`
-   - `FIREBASE_APP_ID`
-   - Optional: `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`
-4. In **Project settings → Service accounts**, generate a private key for the Firebase Admin SDK. Store the complete service-account JSON as the Vercel **server-only** environment variable `FIREBASE_SERVICE_ACCOUNT_JSON`. Set `FIREBASE_PROJECT_ID` to the same project ID. Never put the service-account JSON in frontend code, GitHub, or a `VITE_` variable.
-5. Open **Build → Firestore Database** in Firebase Console and create a database in production mode. The backend uses the Firebase Admin SDK to write usage counters to the `adizilla_usage` collection; Firestore Security Rules do not grant browser clients access to this collection.
-6. Redeploy after saving the environment variables and enabling Firestore. Default server-side limits are 20 chat requests per user per UTC day and 5 per user per minute. Optional Vercel variables `DAILY_CHAT_LIMIT` and `MINUTE_CHAT_LIMIT` can adjust these limits. If Firestore is unavailable, chat requests fail closed with HTTP 503 instead of bypassing the limits.
-7. Test email sign-up, sign-in, password reset, Google sign-in, sign-out, rate limits, and a chat request.
-
-The frontend Web SDK configuration is public by design; the Admin service-account JSON is highly sensitive. Restrict the Web API key to the APIs this Firebase app needs.
-
-### Current account boundaries
-
-- Chat API requests require a valid Firebase ID token verified by Firebase Admin.
-- Browser-local chats and memory are namespaced by Firebase user ID to keep accounts separate on a shared browser.
-- Signed-in chat history is synced through authenticated `/api/chats` endpoints and stored under each user's own Firestore collection. The API never accepts a user ID from the browser to choose the storage owner.
-- **Cross-device memory sync, account deletion, token-based cost metering, and billing are not implemented yet.** Chat history syncs for signed-in users, but there is no account deletion workflow or paid-plan enforcement. The current request limits are a basic abuse-control measure, not a guarantee of a fixed monetary spend.
-- For production launch, configure Firebase email/password and Google providers, authorized domains, security policies, backups, and abuse/rate limits before inviting a large user base.
+See the repository's [MIT license](LICENSE).

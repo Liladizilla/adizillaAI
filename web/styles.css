@@ -104,3 +104,7 @@
 .generated-image-footer{padding:10px 12px}
 .generated-image-footer a{color:var(--accent);font-size:11px;text-decoration:none}
 .generated-image-footer a:hover{text-decoration:underline}
+
+
+/* RevenueCat Web Billing */
+.billing-modal{width:min(760px,calc(100vw - 28px));max-height:88vh;overflow:auto}.subscription-status{display:inline-flex;align-items:center;margin:8px 0 16px;padding:7px 11px;border:1px solid var(--line);border-radius:999px;color:var(--soft);font-size:11px}.subscription-status[data-pro="true"]{border-color:#7560a9;color:#d7c8ff;background:#282139}.revenuecat-paywall{width:100%;min-height:160px}.billing-message{margin:12px 0;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:12px;line-height:1.5;color:var(--soft)}.billing-modal .modal-footnote{margin-top:16px}

@@ -279,6 +279,16 @@ def home():
     return FileResponse(ROOT / "web" / "index.html")
 
 
+@app.get("/terms")
+def terms_page():
+    return FileResponse(ROOT / "web" / "terms.html")
+
+
+@app.get("/privacy")
+def privacy_page():
+    return FileResponse(ROOT / "web" / "privacy.html")
+
+
 @app.get("/api/health")
 def health():
     config = provider_config()

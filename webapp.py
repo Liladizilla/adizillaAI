@@ -1,4 +1,5 @@
 """AdizillaAI web backend. Provider credentials stay on the server."""
+import logging
 import os
 from pathlib import Path
 from typing import Literal
@@ -11,6 +12,7 @@ from openai import OpenAI
 from pydantic import BaseModel, Field
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent
 app = FastAPI(title="AdizillaAI", version="0.2.0")
 app.mount("/assets", StaticFiles(directory=ROOT / "web"), name="assets")
@@ -69,13 +71,13 @@ def chat(payload: ChatRequest):
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend({"role": item.role, "content": item.content.strip()} for item in payload.messages)
     try:
-        client = OpenAI(api_key=api_key, base_url=base_url, timeout=45.0, max_retries=1)
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=0.6,
-            max_tokens=1600,
-        )
+        with OpenAI(api_key=api_key, base_url=base_url, timeout=45.0, max_retries=1) as client:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=0.6,
+                max_tokens=1600,
+            )
         answer = response.choices[0].message.content
         if not answer or not answer.strip():
             raise HTTPException(status_code=502, detail="The model returned an empty response. Try again.")
@@ -85,6 +87,8 @@ def chat(payload: ChatRequest):
     except Exception as exc:
         # Avoid returning provider internals or credentials to the browser.
         status = getattr(exc, "status_code", None)
+        provider = os.getenv("AI_PROVIDER", "groq")
+        logger.error("AI provider request failed: error_type=%s status=%s provider=%s model=%s", type(exc).__name__, status, provider, model)
         if status == 429:
             raise HTTPException(status_code=429, detail="The provider quota or rate limit was reached. Try later or switch providers.")
         if status in (401, 403):

@@ -54,3 +54,27 @@ python -m unittest discover -s tests -v
 ```
 
 Never commit `.env` or real API keys.
+
+## Authentication setup (required for the hosted app)
+
+The web app now uses Firebase Authentication for email/password accounts, Google sign-in, password resets, and sign-out. The FastAPI chat endpoint verifies Firebase ID tokens server-side; a client-side signed-in state alone is not trusted.
+
+1. Create or choose a project in [Firebase Console](https://console.firebase.google.com/), add a **Web app**, and copy its Web SDK configuration.
+2. In **Authentication → Sign-in method**, enable **Email/Password** and **Google**. In **Authentication → Settings → Authorized domains**, ensure `adizillaai.vercel.app` is listed.
+3. In **Project settings → General**, copy the Web app values into Vercel Production environment variables:
+   - `FIREBASE_API_KEY`
+   - `FIREBASE_AUTH_DOMAIN`
+   - `FIREBASE_PROJECT_ID`
+   - `FIREBASE_APP_ID`
+   - Optional: `FIREBASE_STORAGE_BUCKET`, `FIREBASE_MESSAGING_SENDER_ID`
+4. In **Project settings → Service accounts**, generate a private key for the Firebase Admin SDK. Store the complete service-account JSON as the Vercel **server-only** environment variable `FIREBASE_SERVICE_ACCOUNT_JSON`. Set `FIREBASE_PROJECT_ID` to the same project ID. Never put the service-account JSON in frontend code, GitHub, or a `VITE_` variable.
+5. Redeploy after saving the environment variables. Test email sign-up, sign-in, password reset, Google sign-in, sign-out, and a chat request.
+
+The frontend Web SDK configuration is public by design; the Admin service-account JSON is highly sensitive. Restrict the Web API key to the APIs this Firebase app needs.
+
+### Current account boundaries
+
+- Chat API requests require a valid Firebase ID token verified by Firebase Admin.
+- Browser-local chats and memory are namespaced by Firebase user ID to keep accounts separate on a shared browser.
+- **Cloud-synced chat history, cross-device memory sync, account deletion, server-enforced usage quotas, and billing are not implemented yet.** Authentication creates and verifies identities, but it does not automatically store conversations in the cloud.
+- For production launch, configure Firebase email/password and Google providers, authorized domains, security policies, backups, and abuse/rate limits before inviting a large user base.

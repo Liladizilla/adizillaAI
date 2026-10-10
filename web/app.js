@@ -11,8 +11,9 @@ let sendPasswordResetEmail, signOut, updateProfile;
   let memoryEnabled = read(KEYS.enabled, false);
   let currentId = null;
   let busy = false;
+  let activeChatController = null;
   let pendingAttachments = [];
-  let theme = read(KEYS.theme, "dark");
+  let theme = read(KEYS.theme, "system");
   let firebaseAuth = null;
   let firebaseUser = null;
   let revenueCatStatus = { isPro: false, loading: false, error: null };
@@ -140,7 +141,9 @@ let sendPasswordResetEmail, signOut, updateProfile;
   function showPanel(name) {
     Object.entries(panels).forEach(([key, panel]) => { panel.classList.toggle("active-panel", key === name); panel.classList.toggle("hidden", key !== name); });
     document.querySelectorAll(".nav-item").forEach(btn => btn.classList.toggle("active", btn.dataset.panel === name));
-    $("breadcrumbPage").textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    const chat = activeChat();
+    $("breadcrumbPage").textContent = name === "chat" && chat?.messages?.length ? chat.title : name.charAt(0).toUpperCase() + name.slice(1);
+    $("breadcrumbPage").setAttribute("aria-label", name === "chat" && chat?.messages?.length ? "Rename conversation: " + chat.title : name);
     if (name === "memory") syncMemoryUI();
     if (name === "library") renderLibrary();
     closeMobile();
@@ -149,7 +152,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const list = $("chatList"); list.replaceChildren();
     const filtered = chats.filter(c => c.title.toLowerCase().includes(filter.toLowerCase()));
     $("emptyHistory").classList.toggle("hidden", filtered.length > 0);
-    $("emptyHistory").textContent = filter ? "No matching conversations." : "Your conversations will appear here.";
+    $("emptyHistory").textContent = filter ? "No matching conversations." : "Nothing here yet. Your chats show up as you have them."; $("recentsHeading").classList.toggle("hidden", chats.length === 0 && !filter); $("chatCount").classList.toggle("hidden", chats.length === 0);
     $("chatCount").textContent = String(chats.length);
     filtered.forEach(chat => {
       const row = document.createElement("div"); row.className = "history-item" + (chat.id === currentId ? " selected" : "");
@@ -161,7 +164,14 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   function openChat(chatId) { currentId = chatId; renderHistory(); renderMessages(); showPanel("chat"); }
   function renderMessages() {
-    const chat = activeChat(); const messages = $("messages"); messages.replaceChildren();
+    const chat = activeChat();
+    const crumb = $("breadcrumbPage");
+    if (document.querySelector("#chatPanel").classList.contains("active-panel")) {
+      crumb.textContent = chat?.messages?.length ? chat.title : "Chat";
+      crumb.title = chat?.messages?.length ? "Click to rename this conversation" : "";
+      crumb.style.cursor = chat?.messages?.length ? "text" : "";
+    }
+    const messages = $("messages"); messages.replaceChildren();
     const empty = !chat || !chat.messages.length; $("welcome").classList.toggle("hidden", !empty);
     if (chat) chat.messages.forEach((message, index) => messages.append(makeMessage(message, index)));
     $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
@@ -297,11 +307,26 @@ let sendPasswordResetEmail, signOut, updateProfile;
   function makeMessage(message, index) {
     const row = document.createElement("article"); row.className = "message " + message.role;
     if (message.role === "assistant") {
-      const avatar = document.createElement("div"); avatar.className = "message-avatar"; avatar.textContent = "✳";
+      const avatar = document.createElement("div"); avatar.className = "message-avatar"; avatar.textContent = "a";
       const body = document.createElement("div"); body.className = "message-content"; body.innerHTML = renderText(message.content);
       const actions = document.createElement("div"); actions.className = "message-actions";
       const copy = document.createElement("button"); copy.textContent = "Copy response"; copy.addEventListener("click", async () => { try { await navigator.clipboard.writeText(message.content); copy.textContent = "Copied"; } catch { toast("Clipboard access isn't available in this browser."); } });
-      actions.append(copy); body.append(actions); row.append(avatar, body);
+      actions.append(copy);
+      if (message.isError && message.retryContent) {
+        const retry = document.createElement("button"); retry.textContent = "Retry";
+        retry.addEventListener("click", () => {
+          const chat = activeChat(); if (!chat) return;
+          const errorIndex = chat.messages.indexOf(message);
+          if (errorIndex >= 0) {
+            chat.messages.splice(errorIndex, 1);
+            if (errorIndex > 0 && chat.messages[errorIndex - 1]?.role === "user") chat.messages.splice(errorIndex - 1, 1);
+          }
+          $("promptInput").value = message.retryContent;
+          persistChats(); renderMessages(); resizeInput(); $("promptInput").focus();
+        });
+        actions.append(retry);
+      }
+      body.append(actions); row.append(avatar, body);
     } else {
       const body = document.createElement("div"); body.className = "message-content"; body.textContent = message.content; row.append(body);
     }
@@ -320,8 +345,12 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   function syncMemoryUI() {
     $("memoryText").value = memoryDraft; $("memoryEnabled").checked = memoryEnabled; $("memoryLength").textContent = memoryDraft.length + " / 3000";
-    $("memoryCount").textContent = memory.trim() ? "1" : "0"; $("memoryChipText").textContent = memoryEnabled && memory.trim() ? "Memory on" : "Memory off";
-    $("memoryChip").style.color = memoryEnabled && memory.trim() ? "#cbb8ff" : "";
+    $("memoryCount").textContent = memory.trim() ? "1" : "0";
+    $("memoryCount").classList.toggle("hidden", !memory.trim());
+    $("memoryChipText").textContent = memoryEnabled && memory.trim() ? "Memory on" : "Memory off";
+    $("memoryChip").setAttribute("aria-pressed", String(Boolean(memoryEnabled && memory.trim())));
+    $("memoryChip").title = memoryEnabled && memory.trim() ? "Memory is on. Select to manage saved memory." : "Memory is off. Select to manage saved memory.";
+    $("memoryChip").style.color = memoryEnabled && memory.trim() ? "var(--accent)" : "";
   }
   function saveMemory() {
     const draft = $("memoryText").value.slice(0, 3000);
@@ -337,7 +366,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     if (!list || !count) return;
     list.replaceChildren();
     list.classList.toggle("hidden", pendingAttachments.length === 0);
-    count.textContent = pendingAttachments.length ? pendingAttachments.length + "/4 attached" : "";
+    count.textContent = pendingAttachments.length ? pendingAttachments.length + "/4 attached" : ""; updateSendState();
     pendingAttachments.forEach((file, index) => {
       const chip = document.createElement("div");
       chip.className = "attachment-chip";
@@ -393,27 +422,67 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const chat = activeChat(); chat.messages.push({ role: "user", content: displayContent });
     if (chat.messages.filter(m => m.role === "user").length === 1) chat.title = content.slice(0, 48) + (content.length > 48 ? "…" : "");
     chat.updatedAt = Date.now(); persistChats(); renderMessages(); $("promptInput").value = ""; resizeInput();
-    busy = true; $("sendBtn").disabled = true; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
+    busy = true; $("sendBtn").disabled = false; $("sendBtn").textContent = "Stop"; $("sendBtn").setAttribute("aria-label", "Stop generating"); $("typing").textContent = "Reading your message…"; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
+    activeChatController = new AbortController();
     try {
       const recent = chat.messages.filter(m => !m.isError).slice(-24).map(m => ({ role: m.role, content: m.content }));
       const idToken = await firebaseUser.getIdToken();
-      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify({ messages: recent, memory: memoryEnabled ? memory : "", attachments: attachments }) });
+      $("typing").textContent = "Writing…";
+      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + idToken }, body: JSON.stringify({ messages: recent, memory: memoryEnabled ? memory : "", attachments: attachments }), signal: activeChatController.signal });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "The request failed. Please try again.");
       chat.messages.push({ role: "assistant", content: data.answer }); chat.updatedAt = Date.now(); persistChats(); renderMessages();
     } catch (error) {
-      const message = error.message || "Could not reach AdizillaAI.";
-      chat.messages.push({ role: "assistant", content: "I couldn't complete that request. " + message, isError: true }); persistChats(); renderMessages();
+      if (error.name !== "AbortError") {
+        const message = error.message || "Could not reach AdizillaAI.";
+        $("promptInput").value = content; resizeInput();
+        chat.messages.push({ role: "assistant", content: "That one did not go through. Your message is still in the composer. Try again when ready. " + message, isError: true, retryContent: attachments.length ? null : content }); persistChats(); renderMessages();
+      }
     } finally {
-      busy = false; $("sendBtn").disabled = false; $("typing").classList.add("hidden"); $("promptInput").focus();
+      busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ti ti-arrow-up" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
     }
   }
-  function resizeInput() { const input = $("promptInput"); input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 180) + "px"; }
+  function resizeInput() {
+    const input = $("promptInput");
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 192) + "px";
+    input.style.overflowY = input.scrollHeight > 192 ? "auto" : "hidden";
+    updateSendState();
+  }
+  function updateSendState() {
+    const input = $("promptInput"), send = $("sendBtn");
+    if (send) send.disabled = !busy && !input.value.trim() && pendingAttachments.length === 0;
+  }
+  function applyTheme(next = theme) {
+    theme = next;
+    const effective = next === "system" ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : next;
+    document.body.classList.toggle("light-mode", effective === "light");
+    document.documentElement.dataset.theme = effective;
+    $("themeBtn").title = "Theme: " + next + ". Select to change.";
+    $("themeBtn").setAttribute("aria-label", "Theme: " + next);
+  }
+  function updateWelcomeGreeting() {
+    const greeting = $("welcomeGreeting");
+    if (!greeting) return;
+    const name = firebaseUser?.displayName?.trim()?.split(/\s+/)[0];
+    const hour = new Date().getHours();
+    const period = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+    greeting.textContent = name ? "Good " + period + ", " + name + ". What's on your mind?" : "What's on your mind?";
+  }
   function openDialog(id) { const dialog = $(id); if (dialog && !dialog.open) dialog.showModal(); }
   function closeMobile() { $("sidebar").classList.remove("open"); $("scrim").classList.remove("show"); }
   async function checkHealth() {
-    try { const res = await fetch("/api/health"); const data = await res.json(); const pill = document.querySelector(".provider-pill"); pill.classList.toggle("online", data.provider_configured); pill.classList.toggle("offline", !data.provider_configured); $("providerStatus").textContent = data.provider_configured ? (data.provider || "AI") + " ready" : "API key needed"; }
-    catch { document.querySelector(".provider-pill").classList.add("offline"); $("providerStatus").textContent = "Backend unavailable"; }
+    const pill = document.querySelector(".provider-pill");
+    try {
+      const res = await fetch("/api/health");
+      const data = await res.json();
+      const failed = !res.ok || !data.provider_configured;
+      pill.classList.toggle("hidden", !failed);
+      $("providerStatus").textContent = "Reconnecting…";
+    } catch {
+      pill.classList.remove("hidden");
+      $("providerStatus").textContent = "Reconnecting…";
+    }
   }
   function setAuthError(message) {
     const error = $("authError");
@@ -440,12 +509,12 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   function renderAccount() {
     const signedIn = Boolean(firebaseUser);
-    $("accountActionTitle").textContent = signedIn ? "Account settings" : "Sign in or create account";
-    $("accountActionSub").textContent = signedIn ? cloudSyncStatus : (firebaseReady ? "Your personal workspace" : "Account setup required");
-    $("profileName").textContent = signedIn ? (firebaseUser.displayName || "Your account") : "Guest workspace";
-    $("profileSub").textContent = signedIn ? (firebaseUser.email || "Signed in") + " · " + cloudSyncStatus : "Local device · no account";
+    $("accountActionTitle").textContent = signedIn ? "Account menu" : "Sign in";
+    $("profileName").textContent = signedIn ? (firebaseUser.displayName || "Your account") : "Guest";
     $("profileAvatar").textContent = signedIn ? (firebaseUser.displayName || firebaseUser.email || "A").trim().charAt(0).toUpperCase() : "G";
+    $("accountBtn").title = signedIn ? "Account menu, settings, upgrade and sign out" : "Sign in or create an account";
     if (signedIn) $("authSignedInEmail").textContent = firebaseUser.email || firebaseUser.displayName || "Signed-in account";
+    updateWelcomeGreeting();
     renderSubscriptionStatus();
   }
   function loadRevenueCat() {
@@ -494,7 +563,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     }
     const message = $("subscriptionMessage");
     const target = $("revenuecatPaywall");
-    const button = $("upgradeTop");
+    const button = $("accountUpgradeBtn");
     if (message) { message.textContent = ""; message.classList.add("hidden"); }
     if (target) target.replaceChildren();
     openDialog("upgradeDialog");
@@ -599,8 +668,8 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   $("accountBtn").addEventListener("click", async () => {
     await authInitialization;
-    setAuthMode(firebaseUser ? "signin" : "signin");
-    openDialog("authDialog");
+    if (firebaseUser) openDialog("settingsDialog");
+    else { setAuthMode("signin"); openDialog("authDialog"); }
   });
   $("authSwitchBtn").addEventListener("click", () => setAuthMode(authMode === "signup" ? "signin" : "signup"));
   $("authForm").addEventListener("submit", async event => {
@@ -674,20 +743,51 @@ let sendPasswordResetEmail, signOut, updateProfile;
   }
   document.querySelectorAll("[data-panel]").forEach(btn => btn.addEventListener("click", () => showPanel(btn.dataset.panel)));
   $("newChat").addEventListener("click", newChat);
-  $("chatForm").addEventListener("submit", e => { e.preventDefault(); sendMessage($("promptInput").value); });
+  const renameBreadcrumb = () => {
+    const chat = activeChat();
+    if (!chat || !chat.messages?.length) return;
+    const title = window.prompt("Rename conversation", chat.title);
+    if (title === null) return;
+    const next = title.trim().slice(0, 100);
+    if (!next) return;
+    chat.title = next; chat.updatedAt = Date.now(); persistChats(); renderMessages();
+  };
+  $("breadcrumbPage").addEventListener("click", renameBreadcrumb);
+  $("breadcrumbPage").addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); renameBreadcrumb(); } });
+  $("chatForm").addEventListener("submit", e => { e.preventDefault(); if (busy) activeChatController?.abort(); else sendMessage($("promptInput").value); });
   $("promptInput").addEventListener("input", resizeInput);
+  $("promptInput").addEventListener("focus", () => $("inputHint").classList.remove("hidden"));
+  $("promptInput").addEventListener("blur", () => $("inputHint").classList.add("hidden"));
   $("promptInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("chatForm").requestSubmit(); } });
-  document.querySelectorAll("[data-prompt]").forEach(btn => btn.addEventListener("click", () => { $("promptInput").value = btn.dataset.prompt; resizeInput(); $("promptInput").focus(); }));
-  $("memoryChip").addEventListener("click", () => showPanel("memory"));
+  document.querySelectorAll("[data-prompt]").forEach(btn => btn.addEventListener("click", () => {
+    const input = $("promptInput");
+    input.value = btn.dataset.prompt; resizeInput(); input.focus();
+    const start = input.value.indexOf("[");
+    const end = input.value.indexOf("]", start);
+    if (start >= 0 && end > start) input.setSelectionRange(start + 1, end);
+  }));
+  $("memoryChip").addEventListener("click", () => {
+    if (!memory.trim()) { showPanel("memory"); return; }
+    const next = !memoryEnabled;
+    if (!save(KEYS.enabled, next)) return;
+    memoryEnabled = next; syncMemoryUI();
+    toast(next ? "Memory is on. Saved memory may be included in future chat requests." : "Memory is off. Saved memory stays on this device and will not be sent with chat requests.");
+  });
+  $("modelPicker").title = "Mode selection is visual only until model routing is configured.";
+  $("modelPicker").addEventListener("change", () => {
+    const label = $("modelPicker").selectedOptions[0]?.textContent || "Adizilla Fast";
+    toast(label + " is not connected to a separate model yet. The current server-configured model remains in use.");
+  });
   $("memoryText").addEventListener("input", () => { memoryDraft = $("memoryText").value; $("memoryLength").textContent = memoryDraft.length + " / 3000"; });
   $("saveMemory").addEventListener("click", saveMemory);
   $("memoryEnabled").addEventListener("change", () => { const next = $("memoryEnabled").checked; if (save(KEYS.enabled, next)) { memoryEnabled = next; syncMemoryUI(); } else { $("memoryEnabled").checked = memoryEnabled; } });
   $("searchToggle").addEventListener("click", () => { $("searchChats").classList.toggle("hidden"); if (!$("searchChats").classList.contains("hidden")) $("searchChats").focus(); else { $("searchChats").value = ""; renderHistory(); } });
   $("searchChats").addEventListener("input", e => renderHistory(e.target.value));
   $("exportChats").addEventListener("click", exportChats);
-  $("themeBtn").addEventListener("click", () => { theme = theme === "dark" ? "light" : "dark"; document.body.classList.toggle("light-mode", theme === "light"); save(KEYS.theme, theme); });
-  $("upgradeSide").addEventListener("click", openRevenueCatPaywall); $("upgradeTop").addEventListener("click", openRevenueCatPaywall);
-  $("settingsBtn").addEventListener("click", () => openDialog("settingsDialog"));
+  $("themeBtn").addEventListener("click", () => { theme = theme === "dark" ? "light" : theme === "light" ? "system" : "dark"; applyTheme(theme); save(KEYS.theme, theme); });
+  $("accountUpgradeBtn").addEventListener("click", openRevenueCatPaywall);
+  $("settingsSignOut").addEventListener("click", async () => { if (!firebaseAuth) return; try { await signOut(firebaseAuth); $("settingsDialog").close(); toast("You are signed out. Your local conversations remain on this device."); } catch (error) { toast(error.message || "Sign out failed. Please try again."); } });
+  $("settingsOpenAuth").addEventListener("click", async () => { $("settingsDialog").close(); await authInitialization; setAuthMode("signin"); openDialog("authDialog"); });
   $("clearChats").addEventListener("click", () => { chats.forEach(chat => markCloudChatDeleted(chat.id)); chats = []; currentId = null; persistChats(); renderMessages(); $("settingsDialog").close(); });
   $("clearMemory").addEventListener("click", () => { if (!save(KEYS.memory, "") || !save(KEYS.enabled, false)) return; memory = ""; memoryDraft = ""; memoryEnabled = false; syncMemoryUI(); $("settingsDialog").close(); toast("Saved memory cleared from this browser."); });
   $("attachInfo").addEventListener("click", () => $("attachmentInput").click());
@@ -696,8 +796,10 @@ let sendPasswordResetEmail, signOut, updateProfile;
     await authInitialization;
     if (!firebaseUser) { setAuthMode("signin"); openDialog("authDialog"); return; }
     $("imageError").classList.add("hidden");
+    $("createImageBtn").setAttribute("aria-pressed", "true");
     openDialog("imageDialog");
   });
+  $("imageDialog").addEventListener("close", () => $("createImageBtn").setAttribute("aria-pressed", "false"));
   $("imageForm").addEventListener("submit", async event => {
     event.preventDefault();
     await authInitialization;
@@ -737,9 +839,22 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("closeSidebar").addEventListener("click", closeMobile); $("scrim").addEventListener("click", closeMobile);
   document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => btn.closest("dialog").close()));
   document.querySelectorAll("dialog").forEach(dialog => dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); }));
-  document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); newChat(); } if ((e.metaKey || e.ctrlKey) && e.key === "1") { e.preventDefault(); showPanel("chat"); } });
-  document.body.classList.toggle("light-mode", theme === "light");
-  syncMemoryUI(); renderHistory(); renderMessages(); renderLibrary(); checkHealth();
+  document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") { e.preventDefault(); newChat(); } if ((e.metaKey || e.ctrlKey) && e.key === "1") { e.preventDefault(); showPanel("chat"); } });
+  applyTheme(theme); updateWelcomeGreeting();
+  const sidebar = $("sidebar");
+  sidebar.classList.toggle("collapsed", read("adizilla.sidebar-collapsed.v1", false));
+  $("collapseSidebar").addEventListener("click", () => {
+    const collapsed = sidebar.classList.toggle("collapsed");
+    save("adizilla.sidebar-collapsed.v1", collapsed);
+    $("collapseSidebar").title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+    $("collapseSidebar").setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+  });
+  $("promptInput").addEventListener("paste", event => { const files = [...(event.clipboardData?.files || [])]; if (files.length) addAttachments(files); });
+  $("chatForm").addEventListener("dragover", event => { event.preventDefault(); $("chatForm").classList.add("drag-over"); });
+  $("chatForm").addEventListener("dragleave", event => { if (!event.relatedTarget || !$("chatForm").contains(event.relatedTarget)) $("chatForm").classList.remove("drag-over"); });
+  $("chatForm").addEventListener("drop", async event => { event.preventDefault(); $("chatForm").classList.remove("drag-over"); if (event.dataTransfer?.files?.length) await addAttachments(event.dataTransfer.files); });
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener?.("change", () => { if (theme === "system") applyTheme("system"); });
+  syncMemoryUI(); renderHistory(); renderMessages(); renderLibrary(); updateSendState(); checkHealth();
   authInitialization = initializeFirebaseAuth();
   if (!chats.length) { /* The welcome screen is the intentional first-run state. */ } else { currentId = null; }
 })();

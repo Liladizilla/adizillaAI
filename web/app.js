@@ -533,7 +533,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     }
     const message = $("subscriptionMessage");
     const target = $("revenuecatPaywall");
-    const button = $("upgradeTop");
+    const button = $("accountUpgradeBtn");
     if (message) { message.textContent = ""; message.classList.add("hidden"); }
     if (target) target.replaceChildren();
     openDialog("upgradeDialog");
@@ -738,7 +738,6 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("accountUpgradeBtn").addEventListener("click", openRevenueCatPaywall);
   $("settingsSignOut").addEventListener("click", async () => { if (!firebaseAuth) return; try { await signOut(firebaseAuth); $("settingsDialog").close(); toast("You are signed out. Your local conversations remain on this device."); } catch (error) { toast(error.message || "Sign out failed. Please try again."); } });
   $("settingsOpenAuth").addEventListener("click", async () => { $("settingsDialog").close(); await authInitialization; setAuthMode("signin"); openDialog("authDialog"); });
-  $("settingsBtn").addEventListener("click", () => openDialog("settingsDialog"));
   $("clearChats").addEventListener("click", () => { chats.forEach(chat => markCloudChatDeleted(chat.id)); chats = []; currentId = null; persistChats(); renderMessages(); $("settingsDialog").close(); });
   $("clearMemory").addEventListener("click", () => { if (!save(KEYS.memory, "") || !save(KEYS.enabled, false)) return; memory = ""; memoryDraft = ""; memoryEnabled = false; syncMemoryUI(); $("settingsDialog").close(); toast("Saved memory cleared from this browser."); });
   $("attachInfo").addEventListener("click", () => $("attachmentInput").click());

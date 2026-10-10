@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Literal
@@ -132,6 +133,104 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[Message] = Field(min_length=1, max_length=40)
     memory: str = Field(default="", max_length=3000)
+
+
+class ChatRecord(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    title: str = Field(default="New conversation", max_length=200)
+    createdAt: int
+    updatedAt: int
+    messages: list[Message] = Field(default_factory=list, max_length=100)
+
+
+def get_user_chats_collection(user: dict):
+    uid = user.get("uid")
+    firebase_app = get_firebase_admin_app()
+    if not uid or not firebase_app:
+        raise HTTPException(status_code=503, detail="Cloud chat storage is not configured.")
+    return firestore.client(app=firebase_app).collection("adizilla_users").document(uid).collection("chats")
+
+
+def validate_chat_id(chat_id: str):
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", chat_id):
+        raise HTTPException(status_code=400, detail="Invalid conversation ID.")
+
+
+@app.get("/api/chats")
+def list_chats(user: dict = Depends(require_firebase_user)):
+    """Return conversation metadata for the signed-in user only."""
+    try:
+        collection = get_user_chats_collection(user)
+        results = []
+        for doc in collection.stream():
+            data = doc.to_dict() or {}
+            results.append({
+                "id": doc.id,
+                "title": str(data.get("title", "New conversation"))[:200],
+                "createdAt": int(data.get("createdAt", 0)),
+                "updatedAt": int(data.get("updatedAt", 0)),
+            })
+        results.sort(key=lambda item: item["updatedAt"], reverse=True)
+        return {"chats": results[:100]}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Cloud chat list failed: uid=%s error_type=%s", user.get("uid"), type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Cloud chat history is temporarily unavailable.")
+
+
+@app.get("/api/chats/{chat_id}")
+def get_chat(chat_id: str, user: dict = Depends(require_firebase_user)):
+    validate_chat_id(chat_id)
+    try:
+        doc = get_user_chats_collection(user).document(chat_id).get()
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Conversation not found.")
+        data = doc.to_dict() or {}
+        data["id"] = doc.id
+        return data
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Cloud chat read failed: uid=%s error_type=%s", user.get("uid"), type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Cloud conversation is temporarily unavailable.")
+
+
+@app.put("/api/chats/{chat_id}")
+def save_chat(chat_id: str, payload: ChatRecord, user: dict = Depends(require_firebase_user)):
+    validate_chat_id(chat_id)
+    if payload.id != chat_id:
+        raise HTTPException(status_code=400, detail="Conversation ID does not match the URL.")
+    try:
+        collection = get_user_chats_collection(user)
+        safe_messages = [message.model_dump() for message in payload.messages[-100:]]
+        collection.document(chat_id).set({
+            "title": payload.title.strip() or "New conversation",
+            "createdAt": payload.createdAt,
+            "updatedAt": payload.updatedAt,
+            "messages": safe_messages,
+            "ownerUid": user.get("uid"),
+            "updatedAtServer": firestore.SERVER_TIMESTAMP,
+        })
+        return {"ok": True, "id": chat_id}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Cloud chat write failed: uid=%s error_type=%s", user.get("uid"), type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Could not save this conversation to the cloud.")
+
+
+@app.delete("/api/chats/{chat_id}")
+def delete_chat(chat_id: str, user: dict = Depends(require_firebase_user)):
+    validate_chat_id(chat_id)
+    try:
+        get_user_chats_collection(user).document(chat_id).delete()
+        return {"ok": True}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Cloud chat delete failed: uid=%s error_type=%s", user.get("uid"), type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Could not delete this cloud conversation.")
 
 
 def provider_config():

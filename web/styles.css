@@ -156,3 +156,34 @@ button:focus-visible,textarea:focus-visible,input:focus-visible,select:focus-vis
 .send-btn:disabled{opacity:1}
 
 .history-wrap{min-height:0}.tiny-icon{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:6px}.tiny-icon:hover{background:var(--panel2);color:var(--text)}.suggestion-arrow{font-size:14px}
+
+/* Final token overrides for legacy selectors retained by the existing app. */
+:root{--accent2:var(--accent);--shadow:none}
+.auth-brand small{display:none!important}
+.main-area,.light-mode .main-area{background:var(--bg)!important}
+.light-mode{--bg:#F7F3EC;--sidebar:#EFE9DD;--panel:#FCFAF6;--panel2:#F1ECE1;--line:#E1D9C9;--text:#1F1B16;--muted:#655D52;--soft:#514A40;--accent:#1E6B53;--accent2:var(--accent);--danger:#B4392D}
+.light-mode .topbar{border-color:var(--line)}.light-mode .breadcrumb b{color:var(--text)}
+.light-mode .new-chat,.light-mode .composer,.light-mode .suggestion,.light-mode .memory-card,.light-mode .library-card,.light-mode .library-row{background:var(--panel);color:var(--text);border-color:var(--line)}
+.light-mode .composer textarea,.light-mode .memory-text,.light-mode .message-content{color:var(--text)}
+.light-mode .memory-text{background:var(--panel2);border-color:var(--line)}
+.light-mode .message-content pre{background:var(--panel2);border-color:var(--line);color:var(--text)}
+.light-mode .message-content code{background:var(--panel2);color:var(--text)}
+.light-mode .message-content pre code{background:transparent;color:inherit}
+.light-mode .message.user .message-content{background:var(--panel2);border-color:var(--line);color:var(--text)}
+.light-mode .nav-item.active,.light-mode .nav-item:hover{background:var(--panel2);color:var(--text)}
+.light-mode .sidebar{border-color:var(--line)}
+.light-mode .plan-card,.light-mode .price-card,.light-mode .price-card.featured{background:var(--panel2);border-color:var(--line)}
+.light-mode .plan-card p,.light-mode .price-card ul{color:var(--muted)}
+.light-mode .modal{background:var(--panel);color:var(--text)}
+.light-mode .provider-pill{background:transparent;border-color:transparent}
+.message-avatar{background:var(--panel2);border:1px solid var(--line);color:var(--accent)}
+.message.user .message-content{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:12px;padding:12px 14px}
+.message-content blockquote{border-left-color:var(--accent);color:var(--muted);background:transparent}
+.message-content hr{background:var(--line)}
+.message-content del{color:var(--muted);text-decoration-color:var(--muted)}
+.account-cta,.account-icon,.auth-brand .brand-mark{background:var(--panel2);border-color:var(--line);color:var(--accent);box-shadow:none}
+.account-cta:hover{background:var(--panel2);border-color:var(--line)}
+.auth-form input:focus{border-color:var(--accent);box-shadow:none}
+.auth-error{color:var(--danger);background:var(--panel2);border-color:var(--line)}
+.typing span{display:none}
+@media(max-width:760px){.send-btn{width:44px;height:44px}.tool-btn{min-height:44px}.input-hint{font-size:12px}}

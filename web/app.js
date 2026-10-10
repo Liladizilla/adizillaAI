@@ -748,11 +748,14 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("memoryChip").addEventListener("click", () => {
     if (!memory.trim()) { showPanel("memory"); return; }
     const next = !memoryEnabled;
-    if (save(KEYS.enabled, next)) { memoryEnabled = next; syncMemoryUI(); }
+    if (!save(KEYS.enabled, next)) return;
+    memoryEnabled = next; syncMemoryUI();
+    toast(next ? "Memory is on. Saved memory may be included in future chat requests." : "Memory is off. Saved memory stays on this device and will not be sent with chat requests.");
   });
+  $("modelPicker").title = "Mode selection is visual only until model routing is configured.";
   $("modelPicker").addEventListener("change", () => {
     const label = $("modelPicker").selectedOptions[0]?.textContent || "Adizilla Fast";
-    toast(label + " is a display preset only right now. The configured AI provider remains unchanged.");
+    toast(label + " is not connected to a separate model yet. The current server-configured model remains in use.");
   });
   $("memoryText").addEventListener("input", () => { memoryDraft = $("memoryText").value; $("memoryLength").textContent = memoryDraft.length + " / 3000"; });
   $("saveMemory").addEventListener("click", saveMemory);
@@ -772,8 +775,10 @@ let sendPasswordResetEmail, signOut, updateProfile;
     await authInitialization;
     if (!firebaseUser) { setAuthMode("signin"); openDialog("authDialog"); return; }
     $("imageError").classList.add("hidden");
+    $("createImageBtn").setAttribute("aria-pressed", "true");
     openDialog("imageDialog");
   });
+  $("imageDialog").addEventListener("close", () => $("createImageBtn").setAttribute("aria-pressed", "false"));
   $("imageForm").addEventListener("submit", async event => {
     event.preventDefault();
     await authInitialization;
@@ -827,7 +832,6 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("chatForm").addEventListener("dragover", event => { event.preventDefault(); $("chatForm").classList.add("drag-over"); });
   $("chatForm").addEventListener("dragleave", event => { if (!event.relatedTarget || !$("chatForm").contains(event.relatedTarget)) $("chatForm").classList.remove("drag-over"); });
   $("chatForm").addEventListener("drop", async event => { event.preventDefault(); $("chatForm").classList.remove("drag-over"); if (event.dataTransfer?.files?.length) await addAttachments(event.dataTransfer.files); });
-  $("createImageBtn").addEventListener("click", () => $("createImageBtn").setAttribute("aria-pressed", "true"));
   window.matchMedia("(prefers-color-scheme: light)").addEventListener?.("change", () => { if (theme === "system") applyTheme("system"); });
   syncMemoryUI(); renderHistory(); renderMessages(); renderLibrary(); updateSendState(); checkHealth();
   authInitialization = initializeFirebaseAuth();

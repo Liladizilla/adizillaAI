@@ -57,6 +57,21 @@ class WebChatTests(unittest.TestCase):
         self.assertFalse(response.json()["configured"])
         self.assertIsNone(response.json()["firebase"])
 
+    def test_cloud_chat_endpoints_require_authentication(self):
+        with patch.dict(os.environ, {}, clear=True):
+            listing = self.client.get("/api/chats")
+            conversation = self.client.get("/api/chats/test-chat")
+        self.assertEqual(listing.status_code, 401)
+        self.assertEqual(conversation.status_code, 401)
+
+    def test_cloud_chat_rejects_invalid_conversation_id(self):
+        webapp.app.dependency_overrides[webapp.require_firebase_user] = lambda: {"uid": "test-user"}
+        try:
+            response = self.client.get("/api/chats/invalid.id")
+        finally:
+            webapp.app.dependency_overrides.clear()
+        self.assertEqual(response.status_code, 400)
+
     def test_rejects_empty_message(self):
         webapp.app.dependency_overrides[webapp.require_firebase_user] = lambda: {"uid": "test-user"}
         try:

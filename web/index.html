@@ -38,7 +38,7 @@
           <p>More room for bigger ideas.</p>
           <button id="upgradeSide" class="upgrade-link">Explore Adizilla Pro <span>↗</span></button>
         </div>
-        <button class="profile-row" id="settingsBtn"><div class="avatar">A</div><div class="profile-copy"><strong>Guest workspace</strong><span>Local device · no account</span></div><span class="more">•••</span></button>
+        <button class="account-cta" id="accountBtn"><span class="account-icon">↗</span><span><b id="accountActionTitle">Sign in or create account</b><small id="accountActionSub">Sync is coming soon</small></span></button><button class="profile-row" id="settingsBtn"><div class="avatar" id="profileAvatar">G</div><div class="profile-copy"><strong id="profileName">Guest workspace</strong><span id="profileSub">Local device · no account</span></div><span class="more">•••</span></button>
       </div>
     </aside>
     <div class="mobile-scrim" id="scrim"></div>
@@ -84,9 +84,34 @@
       </section>
     </main>
   </div>
+
+  <dialog id="authDialog" class="modal small-modal auth-modal">
+    <button class="modal-close" data-close aria-label="Close">×</button>
+    <div class="auth-brand"><span class="brand-mark"><span>✳</span></span><div><b>adizilla<span>AI</span></b><small>YOUR SPACE, YOUR IDEAS</small></div></div>
+    <div id="authFormState">
+      <div class="modal-eyebrow" id="authEyebrow">YOUR WORKSPACE</div>
+      <h2 id="authTitle">Welcome back.</h2>
+      <p id="authDescription">Sign in to use your personal AdizillaAI workspace.</p>
+      <form id="authForm" class="auth-form">
+        <label id="authNameWrap" class="hidden">Display name<input id="authName" type="text" autocomplete="name" maxlength="80" placeholder="Your name"></label>
+        <label>Email address<input id="authEmail" type="email" autocomplete="email" required maxlength="254" placeholder="you@example.com"></label>
+        <label>Password<input id="authPassword" type="password" autocomplete="current-password" required minlength="8" maxlength="128" placeholder="At least 8 characters"></label>
+        <p id="authError" class="auth-error hidden" role="alert"></p>
+        <button class="primary-btn full-btn" id="authSubmit" type="submit">Sign in</button>
+      </form>
+      <button id="googleAuthBtn" class="google-auth-btn" type="button"><span>G</span> Continue with Google</button>
+      <div class="auth-foot"><button id="resetPasswordBtn" type="button">Forgot password?</button><span id="authSwitchCopy">New to AdizillaAI?</span><button id="authSwitchBtn" type="button">Create account</button></div>
+      <p class="auth-legal">By continuing, you agree to use AdizillaAI responsibly. Account sign-in is secured by Firebase Authentication.</p>
+    </div>
+    <div id="authSignedInState" class="hidden">
+      <div class="modal-eyebrow">ACCOUNT</div><h2>You're signed in.</h2><p id="authSignedInEmail" class="signed-in-email"></p>
+      <p class="modal-footnote">Your conversations and memory are still stored in this browser. Cloud sync is a separate next step.</p>
+      <button class="secondary-btn full-btn" id="signOutBtn" type="button">Sign out</button>
+    </div>
+  </dialog>
   <dialog id="upgradeDialog" class="modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">THE NEXT CHAPTER</div><h2>Make room for<br><em>bigger ideas.</em></h2><p>Adizilla Pro is being prepared. These plans are a product preview, not an active payment flow.</p><div class="pricing-grid"><div class="price-card"><span>FREE</span><h3>$0<small> / forever</small></h3><p>Everyday AI chat</p><ul><li>Local chat history</li><li>Basic saved memory</li><li>Provider free-tier limits</li></ul><button class="secondary-btn" data-close>Current plan</button></div><div class="price-card featured"><span>✦ ADIZILLA PRO</span><h3>Coming soon</h3><p>For your bigger workflows</p><ul><li>Long-term synced memory</li><li>Higher message limits</li><li>File & document tools</li><li>Advanced models and research</li><li>Export, folders & custom assistants</li></ul><button class="primary-btn" id="notifyUpgrade">Join the launch list</button></div></div><p class="modal-footnote">Premium features will need accounts, server-side plan checks, secure storage, and billing before launch.</p></dialog>
   <dialog id="settingsDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">PREFERENCES</div><h2>Your workspace.</h2><p>Local-first for now. Accounts and synced conversations aren't connected yet.</p><button class="secondary-btn full-btn" id="clearChats">Delete all local conversations</button><button class="secondary-btn full-btn" id="clearMemory">Clear saved memory</button><p class="modal-footnote">This only affects this browser on this device.</p></dialog>
   <dialog id="infoDialog" class="modal small-modal"><button class="modal-close" data-close aria-label="Close">×</button><div class="modal-eyebrow">IN THE WORKS</div><h2 id="infoTitle">Coming soon</h2><p id="infoText">This feature is not connected yet.</p><button class="primary-btn full-btn" data-close>Got it</button></dialog>
-  <script src="/assets/app.js" defer></script>
+  <script type="module" src="/assets/app.js"></script>
 </body>
 </html>

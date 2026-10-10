@@ -26,7 +26,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   let cloudSyncRunning = false;
   let cloudSyncAgain = false;
   const deletedChatsKey = "adizilla.deleted-cloud-chats.v1";
-  const panels = { chat: $("chatPanel"), memory: $("memoryPanel"), library: $("libraryPanel") };
+  const panels = { chat: $("chatPanel"), agent: $("agentPanel"), memory: $("memoryPanel"), library: $("libraryPanel") };
   function scopedKey(key) { return firebaseUser ? key.replace("adizilla.", "adizilla.user." + firebaseUser.uid + ".") : key; }
   function read(key, fallback) { try { const value = localStorage.getItem(scopedKey(key)); return value === null ? fallback : JSON.parse(value); } catch { return fallback; } }
   function save(key, value) { try { localStorage.setItem(scopedKey(key), JSON.stringify(value)); return true; } catch { toast("Browser storage could not save this change. Export your chats and free browser storage before trying again."); return false; } }
@@ -442,6 +442,58 @@ let sendPasswordResetEmail, signOut, updateProfile;
       busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ti ti-arrow-up" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
     }
   }
+
+  let lastAgentResult = "";
+  function renderAgentStep(step, index) {
+    const item = document.createElement("article"); item.className = "agent-step";
+    const head = document.createElement("div"); head.className = "agent-step-head";
+    const number = document.createElement("span"); number.className = "agent-step-number"; number.textContent = String(index + 1).padStart(2, "0");
+    const title = document.createElement("h3"); title.textContent = step.title || ("Stage " + (index + 1)); head.append(number, title);
+    const body = document.createElement("div"); body.className = "agent-step-body"; body.innerHTML = renderText(step.result || "");
+    item.append(head, body); return item;
+  }
+  function renderAgentSteps(steps) {
+    const container = $("agentSteps"); container.replaceChildren();
+    (steps || []).forEach((step, index) => container.append(renderAgentStep(step, index)));
+    container.classList.toggle("hidden", !steps?.length);
+  }
+  async function runAgentWorkflow(event) {
+    event.preventDefault(); await authInitialization;
+    if (!firebaseUser) { setAuthMode("signin"); openDialog("authDialog"); return; }
+    const goal = $("agentGoal").value.trim(), workflowType = $("agentWorkflowType").value;
+    if (goal.length < 8) { $("agentError").textContent = "Add a little more detail so the agent has a clear outcome to work toward."; $("agentError").classList.remove("hidden"); return; }
+    const button = $("runAgentBtn"), errorBox = $("agentError"), progress = $("agentProgress");
+    button.disabled = true; button.innerHTML = '<i class="ti ti-loader-2" aria-hidden="true"></i> Working…';
+    $("agentStatus").textContent = "Running"; $("agentStatus").classList.add("is-running");
+    $("agentEmpty").classList.add("hidden"); $("agentFinalWrap").classList.add("hidden"); errorBox.classList.add("hidden"); progress.classList.remove("hidden");
+    $("agentProgressText").textContent = "Planning the workflow…";
+    $("agentMemoryStatus").textContent = memoryEnabled && memory.trim() ? "Your saved memory is enabled for this workflow." : "Saved memory is not included unless Memory is enabled.";
+    try {
+      const token = await firebaseUser.getIdToken();
+      $("agentProgressText").textContent = "Running stages and combining results…";
+      const response = await fetch("/api/agent/run", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }, body: JSON.stringify({ goal, workflow_type: workflowType, memory: memoryEnabled ? memory : "" }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || "The workflow could not be completed.");
+      renderAgentSteps(data.steps || []); lastAgentResult = String(data.final_result || "");
+      $("agentFinal").innerHTML = renderText(lastAgentResult); $("agentFinalWrap").classList.remove("hidden");
+      $("agentStatus").textContent = "Completed"; $("agentStatus").classList.remove("is-running");
+      save("adizilla.agent-last-result.v1", { goal, workflowType, steps: data.steps || [], final_result: lastAgentResult, updatedAt: Date.now() });
+    } catch (err) {
+      $("agentStatus").textContent = "Needs attention"; $("agentStatus").classList.remove("is-running");
+      errorBox.textContent = err.message || "The workflow failed. Check the agent API configuration and try again.";
+      errorBox.classList.remove("hidden"); $("agentEmpty").classList.remove("hidden");
+    } finally {
+      progress.classList.add("hidden"); button.disabled = false;
+      button.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i> Run workflow';
+    }
+  }
+  $("agentForm").addEventListener("submit", runAgentWorkflow);
+  $("copyAgentResult").addEventListener("click", async () => {
+    if (!lastAgentResult) return;
+    try { await navigator.clipboard.writeText(lastAgentResult); toast("Final workflow result copied."); }
+    catch { toast("Clipboard access was blocked by this browser. Select the final result and copy it manually."); }
+  });
+
   function resizeInput() {
     const input = $("promptInput");
     input.style.height = "auto";

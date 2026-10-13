@@ -162,7 +162,7 @@ kbd { display: inline-flex; align-items: center; justify-content: center; margin
 .breadcrumb span { padding: 0 8px; color: var(--faint); }
 .breadcrumb b { color: var(--text); font-weight: 600; }
 .model-picker-label { position: relative; display: flex; align-items: center; }
-.model-picker-label::after { position: absolute; right: 10px; color: var(--muted); content: "⌄"; pointer-events: none; }
+.model-picker-label > i { position: absolute; right: 10px; color: var(--muted); font-size: 14px; pointer-events: none; }
 .model-picker { max-width: 180px; min-height: 36px; padding: 0 28px 0 10px; appearance: none; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--text); font-size: 14px; font-weight: 500; }
 .model-picker:hover { border-color: var(--border-strong); }
 .provider-pill { padding: 0 4px; color: var(--danger); font-size: 13px; }

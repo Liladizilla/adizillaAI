@@ -5,8 +5,8 @@
   --surface: #FCFAF6;
   --raised: #F1ECE1;
   --overlay: #FCFAF6;
-  --border: #E1D9C9;
-  --border-strong: #BEB29C;
+  --border: #958A77;
+  --border-strong: #7E7463;
   --text: #1F1B16;
   --text-2: #3F392F;
   --muted: #655D52;
@@ -56,8 +56,8 @@
     --surface: #161C19;
     --raised: #1D2521;
     --overlay: #1D2521;
-    --border: #28322D;
-    --border-strong: #526159;
+    --border: #5D6A62;
+    --border-strong: #6C7970;
     --text: #ECF1EC;
     --text-2: #C3CEC7;
     --muted: #9AA8A0;
@@ -71,7 +71,7 @@
     --danger-soft: rgba(229, 103, 90, 0.12);
     --success: #5DBB8A;
     --scrim: rgba(5, 8, 6, 0.6);
-    --control-border: #526159;
+    --control-border: var(--border-strong);
   }
 }
 :root[data-theme="dark"] {
@@ -81,8 +81,8 @@
   --surface: #161C19;
   --raised: #1D2521;
   --overlay: #1D2521;
-  --border: #28322D;
-  --border-strong: #526159;
+  --border: #5D6A62;
+  --border-strong: #6C7970;
   --text: #ECF1EC;
   --text-2: #C3CEC7;
   --muted: #9AA8A0;
@@ -96,7 +96,7 @@
   --danger-soft: rgba(229, 103, 90, 0.12);
   --success: #5DBB8A;
   --scrim: rgba(5, 8, 6, 0.6);
-  --control-border: #526159;
+  --control-border: var(--border-strong);
 }
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; }
@@ -121,7 +121,7 @@ a:hover { color: var(--accent-hover); }
 .brand-copy small { display: none; }
 .icon-btn, .tiny-icon, .modal-close { display: inline-grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--muted); }
 .icon-btn:hover, .tiny-icon:hover, .modal-close:hover { background: var(--raised); border-color: var(--border); color: var(--text); }
-.icon-btn i, .tiny-icon i, .modal-close i { font-size: 18px; line-height: 1; }
+.icon-btn i, .modal-close i { font-size: 20px; line-height: 1; }\n.tiny-icon i { font-size: 16px; line-height: 1; }
 .desktop-collapse { width: 32px; height: 32px; margin-left: auto; }
 .mobile-only { display: none; }
 .new-chat { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); color: var(--text); text-align: left; font-weight: 600; transition: background var(--dur-micro), border-color var(--dur-micro); }

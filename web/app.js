@@ -444,7 +444,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
         chat.messages.push({ role: "assistant", content: "That request did not go through. Your message" + (attachments.length ? " and attachments are" : " is") + " back in the composer. Check the error below, then try again. " + message, isError: true, retryContent: attachments.length ? null : content }); persistChats(); renderMessages();
       }
     } finally {
-      busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ph ph-arrow-up-bold" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("sendBtn").title = "Send message"; $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
+      busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ph ph-arrow-up" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("sendBtn").title = "Send message"; $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
     }
   }
   function resizeInput() {

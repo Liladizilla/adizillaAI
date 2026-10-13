@@ -468,7 +468,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     themeButton.title = effective === "dark" ? "Switch to light theme" : "Switch to dark theme";
     themeButton.setAttribute("aria-label", themeButton.title);
     const themeMeta = document.querySelector('meta[name="theme-color"]');
-    if (themeMeta) themeMeta.content = effective === "dark" ? "#0F1311" : "#F7F3EC";
+    if (themeMeta) themeMeta.content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
   }
   function updateWelcomeGreeting() {
     const greeting = $("welcomeGreeting");

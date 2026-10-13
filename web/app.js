@@ -157,7 +157,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     filtered.forEach(chat => {
       const row = document.createElement("div"); row.className = "history-item" + (chat.id === currentId ? " selected" : "");
       const open = document.createElement("button"); open.className = "history-title"; open.textContent = chat.title; open.title = chat.title; open.addEventListener("click", () => openChat(chat.id));
-      const del = document.createElement("button"); del.className = "history-delete"; del.textContent = "×"; del.title = "Delete conversation"; del.setAttribute("aria-label", "Delete " + chat.title);
+      const del = document.createElement("button"); del.className = "history-delete"; del.innerHTML = '<i class="ph ph-trash" aria-hidden="true"></i>'; del.title = "Delete conversation"; del.setAttribute("aria-label", "Delete " + chat.title);
       del.addEventListener("click", (event) => { event.stopPropagation(); markCloudChatDeleted(chat.id); chats = chats.filter(c => c.id !== chat.id); if (currentId === chat.id) currentId = null; persistChats(); renderMessages(); });
       row.append(open, del); list.append(row);
     });
@@ -375,7 +375,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
       name.title = file.name;
       const remove = document.createElement("button");
       remove.type = "button";
-      remove.textContent = "×";
+      remove.innerHTML = '<i class="ph ph-x" aria-hidden="true"></i>';
       remove.setAttribute("aria-label", "Remove " + file.name);
       remove.addEventListener("click", () => {
         pendingAttachments.splice(index, 1);
@@ -422,7 +422,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const chat = activeChat(); chat.messages.push({ role: "user", content: displayContent });
     if (chat.messages.filter(m => m.role === "user").length === 1) chat.title = content.slice(0, 48) + (content.length > 48 ? "…" : "");
     chat.updatedAt = Date.now(); persistChats(); renderMessages(); $("promptInput").value = ""; resizeInput();
-    busy = true; $("sendBtn").disabled = false; $("sendBtn").textContent = "Stop"; $("sendBtn").setAttribute("aria-label", "Stop generating"); $("typing").textContent = "Reading your message…"; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
+    busy = true; $("sendBtn").disabled = false; $("sendBtn").innerHTML = '<i class="ph ph-square-fill" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Stop generating"); $("sendBtn").title = "Stop generating"; $("typing").textContent = "Reading your message…"; $("typing").classList.remove("hidden"); $("conversationScroll").scrollTop = $("conversationScroll").scrollHeight;
     activeChatController = new AbortController();
     try {
       const recent = chat.messages.filter(m => !m.isError).slice(-24).map(m => ({ role: m.role, content: m.content }));
@@ -444,7 +444,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
         chat.messages.push({ role: "assistant", content: "That request did not go through. Your message" + (attachments.length ? " and attachments are" : " is") + " back in the composer. Check the error below, then try again. " + message, isError: true, retryContent: attachments.length ? null : content }); persistChats(); renderMessages();
       }
     } finally {
-      busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ti ti-arrow-up" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
+      busy = false; activeChatController = null; $("sendBtn").innerHTML = '<i class="ph ph-arrow-up-bold" aria-hidden="true"></i>'; $("sendBtn").setAttribute("aria-label", "Send message"); $("sendBtn").title = "Send message"; $("typing").classList.add("hidden"); updateSendState(); $("promptInput").focus();
     }
   }
   function resizeInput() {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0F1311">
+  <meta name="theme-color">
   <meta name="description" content="A calm, capable workspace for conversations, ideas, and everyday work.">
   <title>AdizillaAI</title>
   <meta name="color-scheme" content="light dark">
@@ -27,6 +27,7 @@
     })();
   </script>
   <link rel="stylesheet" href="/assets/styles.css">
+  <script>try { const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim(); } catch {}</script>
 </head>
 <body>
   <div class="app-shell">

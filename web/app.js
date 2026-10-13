@@ -841,7 +841,16 @@ let sendPasswordResetEmail, signOut, updateProfile;
       $("generatedImageModel").textContent = data.model || "AI-generated";
       wrap.classList.remove("hidden");
     } catch (err) {
-      error.textContent = err.message || "Could not generate that image.";
+      const rawError = String(err?.message || "");
+      if (/rejected the configured key|incorrect api key|invalid api key/i.test(rawError)) {
+        error.textContent = "Image generation is unavailable because the image provider key in Vercel is invalid. In Project Settings, open Environment Variables, set IMAGE_API_KEY to a valid xAI API key, then redeploy. Your prompt is still here.";
+      } else if (/not configured|image_api_key/i.test(rawError)) {
+        error.textContent = "Image generation is not configured yet. Add IMAGE_API_KEY in Vercel Project Settings under Environment Variables, then redeploy. Your prompt is still here.";
+      } else if (/rate limit|quota|limit reached/i.test(rawError)) {
+        error.textContent = "The image provider has reached its current quota or rate limit. Your prompt is still here. Check the provider usage and try again later.";
+      } else {
+        error.textContent = rawError || "The image could not be generated. Your prompt is still here. Check the image provider configuration and try again.";
+      }
       error.classList.remove("hidden");
     } finally {
       button.disabled = false;

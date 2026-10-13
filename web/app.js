@@ -463,8 +463,12 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const effective = next === "system" ? (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : next;
     document.body.classList.toggle("light-mode", effective === "light");
     document.documentElement.dataset.theme = effective;
-    $("themeBtn").title = "Theme: " + next + ". Select to change.";
-    $("themeBtn").setAttribute("aria-label", "Theme: " + next);
+    const themeButton = $("themeBtn");
+    themeButton.innerHTML = effective === "dark" ? '<i class="ph ph-sun" aria-hidden="true"></i>' : '<i class="ph ph-moon" aria-hidden="true"></i>';
+    themeButton.title = effective === "dark" ? "Switch to light theme" : "Switch to dark theme";
+    themeButton.setAttribute("aria-label", themeButton.title);
+    const themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeMeta) themeMeta.content = effective === "dark" ? "#0F1311" : "#F7F3EC";
   }
   function updateWelcomeGreeting() {
     const greeting = $("welcomeGreeting");
@@ -848,7 +852,13 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("closeSidebar").addEventListener("click", closeMobile); $("scrim").addEventListener("click", closeMobile);
   document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => btn.closest("dialog").close()));
   document.querySelectorAll("dialog").forEach(dialog => dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); }));
-  document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") { e.preventDefault(); newChat(); } if ((e.metaKey || e.ctrlKey) && e.key === "1") { e.preventDefault(); showPanel("chat"); } });
+  document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") { e.preventDefault(); newChat(); } if ((e.metaKey || e.ctrlKey) && ["1", "2", "3"].includes(e.key)) { e.preventDefault(); showPanel(({ "1": "chat", "2": "memory", "3": "library" })[e.key]); } });
+  const platform = navigator.userAgentData?.platform || navigator.platform || "";
+  const isMac = /Mac|iPhone|iPad|iPod/i.test(platform);
+  const shortcutLabel = isMac ? "⌘ ⇧ O" : "Ctrl + Shift + O";
+  const shortcut = $("newChatShortcut");
+  if (shortcut) { shortcut.textContent = shortcutLabel; shortcut.setAttribute("aria-label", "New chat: " + shortcutLabel); }
+  document.querySelectorAll(".nav-end").forEach((node, index) => { if (node.tagName === "KBD") node.textContent = (isMac ? "⌘" : "Ctrl") + " + " + (index + 1); });
   applyTheme(theme); updateWelcomeGreeting();
   const sidebar = $("sidebar");
   sidebar.classList.toggle("collapsed", read("adizilla.sidebar-collapsed.v1", false));

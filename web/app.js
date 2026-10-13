@@ -845,7 +845,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
       error.classList.remove("hidden");
     } finally {
       button.disabled = false;
-      button.textContent = "Generate image ↗";
+      button.textContent = "Generate image";
     }
   });
   $("openSidebar").addEventListener("click", () => { $("sidebar").classList.add("open"); $("scrim").classList.add("show"); });

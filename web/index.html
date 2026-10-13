@@ -14,31 +14,31 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <div class="brand-row"><button class="icon-btn desktop-collapse" id="collapseSidebar" type="button" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="ti ti-layout-sidebar-left-collapse" aria-hidden="true"></i></button>
+      <div class="brand-row"><button class="icon-btn desktop-collapse" id="collapseSidebar" type="button" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="ti ph-sidebar-simple" aria-hidden="true"></i></button>
         <div class="brand-mark" aria-hidden="true"><span>a</span></div>
         <div class="brand-copy"><strong>adizilla<span>AI</span></strong><small>THINK BEYOND</small></div>
-        <button class="icon-btn mobile-only" id="closeSidebar" aria-label="Close sidebar"><i class="ti ti-x" aria-hidden="true"></i></button>
+        <button class="icon-btn mobile-only" id="closeSidebar" aria-label="Close sidebar"><i class="ti ph-x" aria-hidden="true"></i></button>
       </div>
-      <button class="new-chat" id="newChat"><span class="plus" aria-hidden="true"><i class="ti ti-plus"></i></span> New chat <kbd>⌘ ⇧ O</kbd></button>
+      <button class="new-chat" id="newChat"><span class="plus" aria-hidden="true"><i class="ti ph-plus"></i></span> New chat <kbd id="newChatShortcut" aria-label="New chat shortcut">Ctrl + Shift + O</kbd></button>
       <div class="side-section">
-        <div class="section-heading"><span>WORKSPACE</span><button class="tiny-icon" id="searchToggle" title="Search conversations" aria-label="Search conversations"><i class="ti ti-search" aria-hidden="true"></i></button></div>
+        <div class="section-heading"><span>WORKSPACE</span><button class="tiny-icon" id="searchToggle" title="Search conversations" aria-label="Search conversations"><i class="ti ph-magnifying-glass" aria-hidden="true"></i></button></div>
         <input id="searchChats" class="search-chats hidden" placeholder="Search conversations…" aria-label="Search conversations">
-        <button class="nav-item active" data-panel="chat"><span class="nav-icon" aria-hidden="true"><i class="ti ti-message-circle"></i></span> Chat <span class="nav-end">⌘ 1</span></button>
-        <button class="nav-item" data-panel="memory"><span class="nav-icon" aria-hidden="true"><i class="ti ti-brain"></i></span> Memory <span class="nav-end hidden" id="memoryCount">0</span></button>
-        <button class="nav-item" data-panel="library"><span class="nav-icon" aria-hidden="true"><i class="ti ti-library"></i></span> Library</button>
+        <button class="nav-item active" data-panel="chat"><span class="nav-icon" aria-hidden="true"><i class="ti ph-chat-circle"></i></span> Chat <kbd class="nav-end">Ctrl + 1</kbd></button>
+        <button class="nav-item" data-panel="memory"><span class="nav-icon" aria-hidden="true"><i class="ti ph-brain"></i></span> Memory <span class="nav-end hidden" id="memoryCount">0</span></button>
+        <button class="nav-item" data-panel="library"><span class="nav-icon" aria-hidden="true"><i class="ti ph-books"></i></span> Library</button>
       </div>
       <div class="history-wrap">
         <div class="section-heading" id="recentsHeading"><span>Recents</span><span class="muted hidden" id="chatCount">0</span></div>
         <div id="chatList" class="chat-list"></div>
         <p id="emptyHistory" class="empty-history">Nothing here yet. Your chats show up as you have them.</p>
       </div>
-      <div class="sidebar-bottom"><button class="account-cta" id="accountBtn" aria-label="Account menu"><span class="account-icon" id="profileAvatar" aria-hidden="true">G</span><span class="account-row-copy"><b id="profileName">Guest</b><small id="accountActionTitle">Sign in</small></span><span class="account-row-end" aria-hidden="true">⌄</span></button></div>
+      <div class="sidebar-bottom"><button class="account-cta" id="accountBtn" aria-label="Account menu"><span class="account-icon" id="profileAvatar" aria-hidden="true">G</span><span class="account-row-copy"><b id="profileName">Guest</b><small id="accountActionTitle">Sign in</small></span><span class="account-row-end" aria-hidden="true"><i class="ph ph-caret-up-down"></i></span></button></div>
     </aside>
     <div class="mobile-scrim" id="scrim"></div>
     <main class="main-area">
       <header class="topbar">
-        <div class="top-left"><button class="icon-btn mobile-only" id="openSidebar" aria-label="Open sidebar"><i class="ti ti-menu-2" aria-hidden="true"></i></button><span class="breadcrumb">Workspace <span>/</span> <b id="breadcrumbPage" role="button" tabindex="0" aria-label="Chat">Chat</b></span></div>
-        <div class="top-actions"><span class="provider-pill hidden" role="status" aria-live="polite"><span id="providerStatus">Reconnecting…</span></span><label class="model-picker-label"><span class="sr-only">Model</span><select id="modelPicker" class="model-picker" aria-label="Choose model"><option value="fast">Adizilla Fast</option><option value="deep">Adizilla Deep</option></select></label><button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Change theme"><i class="ti ti-sun-moon" aria-hidden="true"></i></button></div>
+        <div class="top-left"><button class="icon-btn mobile-only" id="openSidebar" aria-label="Open sidebar"><i class="ti ph-list" aria-hidden="true"></i></button><span class="breadcrumb">Workspace <span>/</span> <b id="breadcrumbPage" role="button" tabindex="0" aria-label="Chat">Chat</b></span></div>
+        <div class="top-actions"><span class="provider-pill hidden" role="status" aria-live="polite"><span id="providerStatus">Reconnecting…</span></span><label class="model-picker-label"><span class="sr-only">Model</span><select id="modelPicker" class="model-picker" aria-label="Choose model"><option value="fast">Adizilla Fast</option><option value="deep">Adizilla Deep</option></select><i class="ph ph-caret-down" aria-hidden="true"></i></label><button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Change theme"><i class="ti ph-sun" aria-hidden="true"></i></button></div>
       </header>
       <section id="chatPanel" class="panel active-panel">
         <div class="conversation-scroll" id="conversationScroll">
@@ -54,7 +54,7 @@
         <div class="composer-zone">
           <form id="chatForm" class="composer">
             <textarea id="promptInput" rows="1" maxlength="12000" placeholder="Type a question, paste a draft, or drop a file." aria-label="Message AdizillaAI"></textarea>
-            <div id="attachmentList" class="attachment-list hidden" aria-live="polite"></div><div class="composer-footer"><div class="composer-tools"><button type="button" class="tool-btn" id="memoryChip" title="Memory is off. Select to change memory settings." aria-pressed="false"><span aria-hidden="true"><i class="ti ti-brain"></i></span> <span id="memoryChipText">Memory off</span></button><span class="tool-separator"></span><button type="button" class="tool-btn" id="attachInfo" title="Attach images or documents" aria-label="Attach images or documents"><i class="ti ti-paperclip" aria-hidden="true"></i> <span>Attach</span></button><input id="attachmentInput" class="hidden" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.tsv,.json,.xml,.py,.js,.ts,.jsx,.tsx,.html,.css,.java,.c,.h,.cpp,.rs,.sh,.yaml,.yml,.toml,.log"><span class="attachment-count" id="attachmentCount" aria-live="polite"></span><button type="button" class="tool-btn image-create-btn" id="createImageBtn" aria-pressed="false" title="Create an image using your daily allowance"><span aria-hidden="true"><i class="ti ti-photo"></i></span> <span id="imageModeLabel">Create image</span></button></div><div class="send-area"><span class="input-hint" id="inputHint">Enter to send</span><button type="submit" id="sendBtn" class="send-btn" aria-label="Send message" disabled><i class="ti ti-arrow-up" aria-hidden="true"></i></button></div></div>
+            <div id="attachmentList" class="attachment-list hidden" aria-live="polite"></div><div class="composer-footer"><div class="composer-tools"><button type="button" class="tool-btn" id="memoryChip" title="Memory is off. Select to change memory settings." aria-pressed="false"><span aria-hidden="true"><i class="ti ph-brain"></i></span> <span id="memoryChipText">Memory off</span></button><span class="tool-separator"></span><button type="button" class="tool-btn" id="attachInfo" title="Attach images or documents" aria-label="Attach images or documents"><i class="ti ph-paperclip" aria-hidden="true"></i> <span>Attach</span></button><input id="attachmentInput" class="hidden" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.txt,.md,.csv,.tsv,.json,.xml,.py,.js,.ts,.jsx,.tsx,.html,.css,.java,.c,.h,.cpp,.rs,.sh,.yaml,.yml,.toml,.log"><span class="attachment-count" id="attachmentCount" aria-live="polite"></span><button type="button" class="tool-btn image-create-btn" id="createImageBtn" aria-pressed="false" title="Create an image using your daily allowance"><span aria-hidden="true"><i class="ti ph-image"></i></span> <span id="imageModeLabel">Create image</span></button></div><div class="send-area"><span class="input-hint" id="inputHint">Enter to send</span><button type="submit" id="sendBtn" class="send-btn" aria-label="Send message" disabled><i class="ti ph-arrow-up-bold" aria-hidden="true"></i></button></div></div>
           </form>
           <p class="disclaimer">AdizillaAI can make mistakes. Check important information.</p>
         </div>
@@ -62,18 +62,18 @@
       <section id="memoryPanel" class="panel content-panel hidden">
         <div class="content-heading"><div class="eyebrow">PERSONALIZATION</div><h1>A little context.<br><em>A lot more you.</em></h1><p>Memory lets Adizilla remember details you choose to keep, so you don't have to start from zero every time.</p></div>
         <div class="memory-card"><div class="card-title"><div><span class="card-symbol">⌁</span><b>Your saved memories</b></div><label class="toggle"><input id="memoryEnabled" type="checkbox"><span></span></label></div><p class="muted">Memory is stored in this browser on this device. It is sent with chat requests only when enabled.</p><textarea id="memoryText" class="memory-text" maxlength="3000" placeholder="For example: I prefer concise explanations, I'm learning Python, and I'm building a personal project…"></textarea><div class="memory-footer"><span id="memoryLength">0 / 3000</span><button class="primary-btn" id="saveMemory">Save memory</button></div></div>
-        <div class="notice"><span aria-hidden="true"><i class="ti ti-info-circle"></i></span><p><b>Your data, your call.</b><br>Clear memory whenever you like. Browser storage is not account sync or encrypted cloud storage. Don't save passwords or sensitive secrets here.</p></div>
+        <div class="notice"><span aria-hidden="true"><i class="ti ph-info"></i></span><p><b>Your data, your call.</b><br>Clear memory whenever you like. Browser storage is not account sync or encrypted cloud storage. Don't save passwords or sensitive secrets here.</p></div>
       </section>
       <section id="libraryPanel" class="panel content-panel hidden">
         <div class="content-heading"><div class="eyebrow">YOUR WORKSPACE</div><h1>Keep the good<br><em>stuff close.</em></h1><p>Find and export conversations saved in your account or on this device.</p></div>
-        <div class="library-card"><div class="library-symbol" aria-hidden="true"><i class="ti ti-library"></i></div><div><b>Conversation library</b><p class="muted">Signed-in conversations sync to your account. Guest history stays on this device.</p></div><button class="secondary-btn" id="exportChats">Export chats </button></div>
+        <div class="library-card"><div class="library-symbol" aria-hidden="true"><i class="ti ph-books"></i></div><div><b>Conversation library</b><p class="muted">Signed-in conversations sync to your account. Guest history stays on this device.</p></div><button class="secondary-btn" id="exportChats">Export chats </button></div>
         <div id="libraryList" class="library-list"></div>
       </section>
     </main>
   </div>
 
   <dialog id="authDialog" class="modal small-modal auth-modal">
-    <button class="modal-close" data-close aria-label="Close"><i class="ti ti-x" aria-hidden="true"></i></button>
+    <button class="modal-close" data-close aria-label="Close"><i class="ti ph-x" aria-hidden="true"></i></button>
     <div class="auth-brand"><span class="brand-mark"><span>a</span></span><div><b>adizilla<span>AI</span></b><small>A focused AI workspace</small></div></div>
     <div id="authFormState">
       <div class="modal-eyebrow" id="authEyebrow">YOUR WORKSPACE</div>

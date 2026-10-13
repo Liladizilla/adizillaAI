@@ -1,6 +1,9 @@
 """AdizillaAI web backend. Provider credentials stay on the server."""
 import base64
 import binascii
+import urllib.error
+import urllib.parse
+import urllib.request
 import json
 import logging
 import os
@@ -302,13 +305,40 @@ def health():
 
 @app.post("/api/images/generate")
 def generate_image(payload: ImageGenerationRequest, user: dict = Depends(require_firebase_user)):
-    """Generate one image using xAI Imagine, keeping provider credentials server-side."""
+    """Generate an image through the configured hosted provider. Credentials stay server-side."""
     uid = user.get("uid")
+    provider = os.getenv("IMAGE_PROVIDER", "").strip().lower()
+    pollinations_key = os.getenv("POLLINATIONS_API_KEY", "").strip()
+    cloudflare_key = (os.getenv("CLOUDFLARE_API_TOKEN") or os.getenv("CLOUDFLARE_API_KEY") or "").strip()
+    cloudflare_account = os.getenv("CLOUDFLARE_ACCOUNT_ID", "").strip()
     image_key = os.getenv("IMAGE_API_KEY") or os.getenv("GROK_02") or os.getenv("grok_02")
     image_base_url = os.getenv("IMAGE_BASE_URL", "https://api.x.ai/v1").strip()
     image_model = os.getenv("IMAGE_MODEL", "grok-imagine-image-2.0").strip()
-    if not image_key:
-        raise HTTPException(status_code=503, detail="Image generation is not configured. Add IMAGE_API_KEY in Vercel, or configure a Grok API key.")
+
+    # Prefer explicitly configured provider. Otherwise choose one with credentials.
+    if provider in ("pollinations", "pollinations.ai"):
+        provider = "pollinations"
+    elif provider in ("cloudflare", "workers-ai", "workers_ai"):
+        provider = "cloudflare"
+    elif provider in ("xai", "grok"):
+        provider = "xai"
+    elif pollinations_key:
+        provider = "pollinations"
+    elif cloudflare_key and cloudflare_account:
+        provider = "cloudflare"
+    else:
+        provider = "xai"
+
+    if provider == "pollinations" and not pollinations_key:
+        raise HTTPException(status_code=503, detail="Pollinations is selected but POLLINATIONS_API_KEY is missing.")
+    if provider == "cloudflare" and not (cloudflare_key and cloudflare_account):
+        raise HTTPException(status_code=503, detail="Cloudflare Workers AI needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.")
+    if provider == "xai" and not image_key:
+        raise HTTPException(status_code=503, detail="Image generation is not configured. Add a valid image provider key in Vercel.")
+    if provider == "pollinations":
+        image_model = os.getenv("POLLINATIONS_IMAGE_MODEL", "flux").strip()
+    elif provider == "cloudflare":
+        image_model = os.getenv("CLOUDFLARE_IMAGE_MODEL", "@cf/black-forest-labs/flux-1-schnell").strip()
     firebase_app = get_firebase_admin_app()
     if not firebase_app:
         raise HTTPException(status_code=503, detail="Authentication is not configured on the server yet.")
@@ -341,25 +371,64 @@ def generate_image(payload: ImageGenerationRequest, user: dict = Depends(require
         raise HTTPException(status_code=503, detail="Image usage protection is temporarily unavailable.")
 
     try:
+        prompt = payload.prompt.strip()
+        if provider == "pollinations":
+            query = urllib.parse.urlencode({
+                "model": image_model, "width": 1024, "height": 1024,
+                "nologo": "true", "key": pollinations_key,
+            })
+            image_url = "https://gen.pollinations.ai/image/" + urllib.parse.quote(prompt, safe="") + "?" + query
+            request = urllib.request.Request(image_url, headers={"Accept": "image/*", "User-Agent": "AdizillaAI/1.0"})
+            with urllib.request.urlopen(request, timeout=90) as result:
+                content_type = result.headers.get("Content-Type", "image/jpeg").split(";")[0]
+                image_bytes = result.read()
+            if not content_type.startswith("image/") or not image_bytes:
+                raise HTTPException(status_code=502, detail="Pollinations did not return a valid image.")
+            encoded = base64.b64encode(image_bytes).decode("ascii")
+            return {"image_url": f"data:{content_type};base64,{encoded}", "model": image_model, "prompt": prompt}
+
+        if provider == "cloudflare":
+            endpoint = f"https://api.cloudflare.com/client/v4/accounts/{cloudflare_account}/ai/run/{image_model}"
+            body = json.dumps({"prompt": prompt}).encode("utf-8")
+            request = urllib.request.Request(
+                endpoint, data=body,
+                headers={"Authorization": f"Bearer {cloudflare_key}", "Content-Type": "application/json", "Accept": "image/*, application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(request, timeout=90) as result:
+                content_type = result.headers.get("Content-Type", "application/octet-stream").split(";")[0]
+                response_bytes = result.read()
+            if content_type.startswith("image/"):
+                encoded = base64.b64encode(response_bytes).decode("ascii")
+                return {"image_url": f"data:{content_type};base64,{encoded}", "model": image_model, "prompt": prompt}
+            try:
+                result_json = json.loads(response_bytes.decode("utf-8"))
+                image_data = result_json.get("result", {}).get("image")
+                if image_data:
+                    return {"image_url": f"data:image/png;base64,{image_data}", "model": image_model, "prompt": prompt}
+            except (ValueError, AttributeError):
+                pass
+            raise HTTPException(status_code=502, detail="Cloudflare Workers AI returned an unsupported image response.")
+
         with OpenAI(api_key=image_key, base_url=image_base_url, timeout=90.0, max_retries=1) as client:
             response = client.images.generate(
-                model=image_model,
-                prompt=payload.prompt.strip(),
-                response_format="url",
+                model=image_model, prompt=prompt, response_format="url",
                 extra_body={"aspect_ratio": "1:1", "quality": "low"},
             )
         if not response.data or not response.data[0].url:
             raise HTTPException(status_code=502, detail="The image provider returned no image URL.")
-        return {"image_url": response.data[0].url, "model": image_model, "prompt": payload.prompt.strip()}
+        return {"image_url": response.data[0].url, "model": image_model, "prompt": prompt}
     except HTTPException:
         raise
     except Exception as exc:
         status = getattr(exc, "status_code", None)
-        logger.error("Image provider request failed: uid=%s error_type=%s status=%s model=%s error=%s", uid, type(exc).__name__, status, image_model, str(exc)[:500])
+        if isinstance(exc, urllib.error.HTTPError):
+            status = exc.code
+        logger.error("Image provider request failed: uid=%s provider=%s error_type=%s status=%s model=%s error=%s", uid, provider, type(exc).__name__, status, image_model, str(exc)[:500])
         if status == 429:
             raise HTTPException(status_code=429, detail="The image provider rate limit or quota was reached.")
         if status in (401, 403):
-            raise HTTPException(status_code=502, detail="The image provider rejected the configured key. Check IMAGE_API_KEY in Vercel.")
+            raise HTTPException(status_code=502, detail=f"{provider.title()} rejected its credentials. Check the provider key and account settings in Vercel.")
         raise HTTPException(status_code=502, detail="Image generation failed. Check the provider configuration and deployment logs.")
 
 

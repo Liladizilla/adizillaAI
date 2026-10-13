@@ -813,10 +813,15 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("promptInput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("chatForm").requestSubmit(); } });
   document.querySelectorAll("[data-prompt]").forEach(btn => btn.addEventListener("click", () => {
     const input = $("promptInput");
-    input.value = btn.dataset.prompt; resizeInput(); input.focus();
-    const start = input.value.indexOf("[");
-    const end = input.value.indexOf("]", start);
-    if (start >= 0 && end > start) input.setSelectionRange(start + 1, end);
+    const prompt = String(btn.dataset.prompt || "").trim();
+    if (!prompt || busy) return;
+    input.value = prompt;
+    resizeInput();
+    updateSendState();
+    input.focus();
+    // A template should start the chat, not leave the user guessing whether it worked.
+    // sendMessage preserves the prompt in the composer if sign-in is required.
+    $("chatForm").requestSubmit();
   }));
   $("memoryChip").addEventListener("click", () => {
     if (!memory.trim()) { showPanel("memory"); return; }

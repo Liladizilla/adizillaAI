@@ -797,7 +797,7 @@ let sendPasswordResetEmail, signOut, updateProfile;
   $("searchToggle").addEventListener("click", () => { $("searchChats").classList.toggle("hidden"); if (!$("searchChats").classList.contains("hidden")) $("searchChats").focus(); else { $("searchChats").value = ""; renderHistory(); } });
   $("searchChats").addEventListener("input", e => renderHistory(e.target.value));
   $("exportChats").addEventListener("click", exportChats);
-  $("themeBtn").addEventListener("click", () => { theme = theme === "dark" ? "light" : theme === "light" ? "system" : "dark"; applyTheme(theme); save(KEYS.theme, theme); });
+  $("themeBtn").addEventListener("click", () => { theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; applyTheme(theme); save(KEYS.theme, theme); });
   $("accountUpgradeBtn").addEventListener("click", openRevenueCatPaywall);
   $("settingsSignOut").addEventListener("click", async () => { if (!firebaseAuth) return; try { await signOut(firebaseAuth); $("settingsDialog").close(); toast("You are signed out. Your local conversations remain on this device."); } catch (error) { toast(error.message || "Sign out failed. Please try again."); } });
   $("settingsOpenAuth").addEventListener("click", async () => { $("settingsDialog").close(); await authInitialization; setAuthMode("signin"); openDialog("authDialog"); });

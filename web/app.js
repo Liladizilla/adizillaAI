@@ -1,7 +1,3 @@
-import { inject } from '@vercel/analytics';
-
-inject();
-
 let initializeApp, getAuth, onAuthStateChanged, createUserWithEmailAndPassword;
 let signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider;
 let sendPasswordResetEmail, signOut, updateProfile;

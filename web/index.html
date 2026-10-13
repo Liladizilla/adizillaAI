@@ -21,8 +21,6 @@
         const effective = theme === "light" || theme === "dark" ? theme :
           (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
         document.documentElement.dataset.theme = effective;
-        const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.content = effective === "dark" ? "#0F1311" : "#F7F3EC";
       } catch {
         document.documentElement.dataset.theme = "dark";
       }

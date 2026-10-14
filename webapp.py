@@ -1,9 +1,7 @@
 """AdizillaAI web backend. Provider credentials stay on the server."""
 import base64
 import binascii
-import urllib.error
 import urllib.parse
-import urllib.request
 import json
 import logging
 import os
@@ -378,10 +376,11 @@ def generate_image(payload: ImageGenerationRequest, user: dict = Depends(require
                 "nologo": "true", "key": pollinations_key,
             })
             image_url = "https://gen.pollinations.ai/image/" + urllib.parse.quote(prompt, safe="") + "?" + query
-            request = urllib.request.Request(image_url, headers={"Accept": "image/*", "User-Agent": "AdizillaAI/1.0"})
-            with urllib.request.urlopen(request, timeout=90) as result:
+            with httpx.Client(timeout=90.0, follow_redirects=False) as client:
+                result = client.get(image_url, headers={"Accept": "image/*", "User-Agent": "AdizillaAI/1.0"})
+                result.raise_for_status()
                 content_type = result.headers.get("Content-Type", "image/jpeg").split(";")[0]
-                image_bytes = result.read()
+                image_bytes = result.content
             if not content_type.startswith("image/") or not image_bytes:
                 raise HTTPException(status_code=502, detail="Pollinations did not return a valid image.")
             encoded = base64.b64encode(image_bytes).decode("ascii")
@@ -390,14 +389,15 @@ def generate_image(payload: ImageGenerationRequest, user: dict = Depends(require
         if provider == "cloudflare":
             endpoint = f"https://api.cloudflare.com/client/v4/accounts/{cloudflare_account}/ai/run/{image_model}"
             body = json.dumps({"prompt": prompt}).encode("utf-8")
-            request = urllib.request.Request(
-                endpoint, data=body,
-                headers={"Authorization": f"Bearer {cloudflare_key}", "Content-Type": "application/json", "Accept": "image/*, application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(request, timeout=90) as result:
+            with httpx.Client(timeout=90.0, follow_redirects=False) as client:
+                result = client.post(
+                    endpoint,
+                    content=body,
+                    headers={"Authorization": f"Bearer {cloudflare_key}", "Content-Type": "application/json", "Accept": "image/*, application/json"},
+                )
+                result.raise_for_status()
                 content_type = result.headers.get("Content-Type", "application/octet-stream").split(";")[0]
-                response_bytes = result.read()
+                response_bytes = result.content
             if content_type.startswith("image/"):
                 encoded = base64.b64encode(response_bytes).decode("ascii")
                 return {"image_url": f"data:{content_type};base64,{encoded}", "model": image_model, "prompt": prompt}
@@ -421,9 +421,7 @@ def generate_image(payload: ImageGenerationRequest, user: dict = Depends(require
     except HTTPException:
         raise
     except Exception as exc:
-        status = getattr(exc, "status_code", None)
-        if isinstance(exc, urllib.error.HTTPError):
-            status = exc.code
+        status = getattr(exc, "status_code", None) or getattr(getattr(exc, "response", None), "status_code", None)
         logger.error("Image provider request failed: uid=%s provider=%s error_type=%s status=%s model=%s error=%s", uid, provider, type(exc).__name__, status, image_model, str(exc)[:500])
         if status == 429:
             raise HTTPException(status_code=429, detail="The image provider rate limit or quota was reached.")

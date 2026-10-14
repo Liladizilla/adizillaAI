@@ -308,7 +308,7 @@ def generate_image(payload: ImageGenerationRequest, user: dict = Depends(require
     """Generate an image through the configured hosted provider. Credentials stay server-side."""
     uid = user.get("uid")
     provider = os.getenv("IMAGE_PROVIDER", "").strip().lower()
-    pollinations_key = os.getenv("POLLINATIONS_API_KEY", "").strip()
+    pollinations_key = os.getenv("POLLINATIONS_API_KEY", "") or os.getenv("POLLINATION_API_KEY", "").strip()
     cloudflare_key = (os.getenv("CLOUDFLARE_API_TOKEN") or os.getenv("CLOUDFLARE_API_KEY") or "").strip()
     cloudflare_account = os.getenv("CLOUDFLARE_ACCOUNT_ID", "").strip()
     image_key = os.getenv("IMAGE_API_KEY") or os.getenv("GROK_02") or os.getenv("grok_02")

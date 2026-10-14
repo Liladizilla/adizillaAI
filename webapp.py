@@ -508,9 +508,15 @@ def chat(payload: ChatRequest, user: dict = Depends(require_firebase_user)):
         payload.messages[-1].content = (payload.messages[-1].content + "\n\nAttached file content:\n" + context)[:12000]
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend({"role": item.role, "content": item.content.strip()} for item in payload.messages)
-    vision_key = os.getenv("VISION_API_KEY") or os.getenv("GROK_02") or os.getenv("grok_02")
-    vision_base_url = os.getenv("VISION_BASE_URL", "https://api.x.ai/v1").strip()
-    vision_model = os.getenv("VISION_MODEL", "grok-4.7").strip()
+    # Image understanding should work with the already configured AI provider by default.
+    # A dedicated VISION_API_KEY / VISION_BASE_URL / VISION_MODEL can still override it.
+    # Do not silently send a Groq key (or a stale legacy GROK_02 value) to xAI.
+    vision_key = os.getenv("VISION_API_KEY") or api_key
+    vision_base_url = os.getenv("VISION_BASE_URL", base_url).strip()
+    default_vision_model = "grok-4.7" if "api.x.ai" in vision_base_url else "qwen/qwen3.8-27b"
+    vision_model = os.getenv("VISION_MODEL", default_vision_model).strip()
+    request_provider = "xai" if "api.x.ai" in vision_base_url else ("groq" if "api.groq.com" in vision_base_url else "custom")
+    request_model = vision_model if image_attachments else model
     if image_attachments:
         if not vision_key:
             raise HTTPException(status_code=503, detail="Image understanding needs a vision-capable provider. Configure VISION_API_KEY in Vercel.")
@@ -551,7 +557,7 @@ def chat(payload: ChatRequest, user: dict = Depends(require_firebase_user)):
         status = getattr(exc, "status_code", None)
         logger.error(
             "AI provider request failed: uid=%s error_type=%s status=%s provider=%s model=%s provider_error=%s",
-            user_uid, type(exc).__name__, status, provider, model, str(exc)[:700],
+            user_uid, type(exc).__name__, status, request_provider if image_attachments else provider, request_model, str(exc)[:700],
         )
         if status == 429:
             raise HTTPException(status_code=429, detail="The provider quota or rate limit was reached. Try later.")

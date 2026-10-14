@@ -407,3 +407,34 @@ input, textarea, select { accent-color: var(--accent); }
   color: var(--on-accent);
   font-weight: 700;
 }
+
+
+/* Visible UI repair: ensure the regular Phosphor icon that is actually loaded renders. */
+#sendBtn {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: 1px solid var(--accent-press);
+}
+#sendBtn > i {
+  display: inline-block;
+  font-family: "Phosphor";
+  font-style: normal;
+  font-weight: normal;
+  font-size: 20px;
+  line-height: 1;
+  color: currentColor;
+  opacity: 1;
+  visibility: visible;
+}
+#sendBtn:disabled {
+  background: var(--raised);
+  color: var(--text-2);
+  border-color: var(--border-strong);
+}
+#sendBtn:disabled > i { color: var(--text-2); }
+
+/* Give the brand a deliberate wordmark rather than the old slogan lockup. */
+.brand-copy small { display: none !important; }
+.brand-copy strong { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: -0.035em; color: var(--text); }
+.brand-copy strong span { color: var(--text-2); margin-left: 2px; font-size: .82em; letter-spacing: -.01em; }
+.brand-mark { border-color: var(--border-strong); background: var(--raised); color: var(--text); }

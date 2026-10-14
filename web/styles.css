@@ -438,3 +438,24 @@ input, textarea, select { accent-color: var(--accent); }
 .brand-copy strong { font-family: var(--font-display); font-size: 18px; font-weight: 600; letter-spacing: -0.035em; color: var(--text); }
 .brand-copy strong span { color: var(--text-2); margin-left: 2px; font-size: .82em; letter-spacing: -.01em; }
 .brand-mark { border-color: var(--border-strong); background: var(--raised); color: var(--text); }
+
+
+/* Recovery polish: explicit visible affordances, not pseudo-glyphs. */
+.brand-row { gap: 10px; }
+.brand-mark { font: 700 13px/1 var(--font-body); letter-spacing: -.06em; }
+.brand-copy strong { font-size: 18px; letter-spacing: -.045em; }
+.brand-copy strong span { font-size: .78em; margin-left: 3px; }
+.desktop-collapse { margin-left: auto; order: 3; }
+.suggestion-arrow { display: block; flex: 0 0 auto; font-size: 16px; color: var(--muted); opacity: 0; transition: opacity var(--dur-micro); }
+.suggestion:hover .suggestion-arrow, .suggestion:focus-visible .suggestion-arrow { opacity: 1; }
+#sendBtn { display: inline-grid; place-items: center; width: 36px; height: 36px; min-width: 36px; border-radius: 50%; padding: 0; }
+#sendBtn > i { font-size: 20px; line-height: 1; }
+@media (hover: none) {
+  .suggestion-arrow { opacity: 1; }
+}
+@media (max-width: 767px) {
+  .brand-row { min-height: 44px; }
+  .desktop-collapse { display: none; }
+  .suggestion { min-height: 48px; }
+  .composer-zone { position: sticky; bottom: 0; }
+}

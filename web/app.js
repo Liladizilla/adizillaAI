@@ -479,7 +479,13 @@ let sendPasswordResetEmail, signOut, updateProfile;
     greeting.textContent = name ? "Good " + period + ", " + name + ". What's on your mind?" : "What's on your mind?";
   }
   function openDialog(id) { const dialog = $(id); if (dialog && !dialog.open) dialog.showModal(); }
-  function closeMobile() { $("sidebar").classList.remove("open"); $("scrim").classList.remove("show"); }
+  function closeMobile() {
+    const sidebar = $("sidebar");
+    const scrim = $("scrim");
+    if (sidebar) sidebar.classList.remove("open");
+    if (scrim) scrim.classList.remove("show");
+    $("openSidebar")?.setAttribute("aria-expanded", "false");
+  }
   async function checkHealth() {
     const pill = document.querySelector(".provider-pill");
     try {
@@ -848,8 +854,23 @@ let sendPasswordResetEmail, signOut, updateProfile;
       button.textContent = "Generate image ↗";
     }
   });
-  $("openSidebar").addEventListener("click", () => { $("sidebar").classList.add("open"); $("scrim").classList.add("show"); });
-  $("closeSidebar").addEventListener("click", closeMobile); $("scrim").addEventListener("click", closeMobile);
+  $("openSidebar")?.addEventListener("click", () => {
+    $("sidebar")?.classList.add("open");
+    $("scrim")?.classList.add("show");
+    $("openSidebar")?.setAttribute("aria-expanded", "true");
+  });
+  // Capture the close action before other click handlers can interfere.
+  document.addEventListener("click", (event) => {
+    if (event.target instanceof Element && event.target.closest("#closeSidebar")) {
+      event.preventDefault();
+      closeMobile();
+    }
+  }, true);
+  $("closeSidebar")?.addEventListener("click", closeMobile);
+  $("scrim")?.addEventListener("click", closeMobile);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && $("sidebar")?.classList.contains("open")) closeMobile();
+  });
   document.querySelectorAll("[data-close]").forEach(btn => btn.addEventListener("click", () => btn.closest("dialog").close()));
   document.querySelectorAll("dialog").forEach(dialog => dialog.addEventListener("click", e => { if (e.target === dialog) dialog.close(); }));
   document.addEventListener("keydown", e => { if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "o") { e.preventDefault(); newChat(); } if ((e.metaKey || e.ctrlKey) && ["1", "2", "3"].includes(e.key)) { e.preventDefault(); showPanel(({ "1": "chat", "2": "memory", "3": "library" })[e.key]); } });

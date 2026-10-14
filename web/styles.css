@@ -330,7 +330,7 @@ input, textarea, select { accent-color: var(--accent); }
 }
 @media (max-width: 767px) {
   .sidebar, .sidebar.collapsed { position: fixed; top: 0; bottom: 0; left: 0; width: min(85vw, 320px); height: 100dvh; flex-basis: min(85vw, 320px); padding: 12px; transform: translateX(-105%); transition: transform var(--dur-base) var(--ease-enter); }
-  .sidebar.open { transform: translateX(0); }
+  .sidebar.open { z-index: 20; transform: translateX(0); }
   .sidebar .brand-copy, .sidebar .section-heading, .sidebar .new-chat kbd, .sidebar .history-wrap, .sidebar .account-row-copy, .sidebar .account-row-end { display: initial; }
   .sidebar .brand-row { justify-content: flex-start; }
   .sidebar .new-chat { justify-content: flex-start; padding: 0 10px; font-size: 14px; }
@@ -338,7 +338,7 @@ input, textarea, select { accent-color: var(--accent); }
   .sidebar .account-cta { justify-content: flex-start; padding: 8px; }
   .desktop-collapse { display: none; }
   .mobile-only { display: inline-grid; }
-  .mobile-scrim.show { display: block; position: fixed; inset: 0; z-index: 9; background: var(--scrim); }
+  .mobile-scrim.show { display: block; position: fixed; inset: 0; z-index: 19; background: var(--scrim); }
   .topbar { flex-basis: 52px; padding: 0 10px; }
   .breadcrumb { max-width: 42vw; font-size: 13px; }
   .top-actions { gap: 4px; }

@@ -379,3 +379,33 @@ input, textarea, select { accent-color: var(--accent); }
   button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid Highlight; }
   .nav-item.active::before { background: Highlight; }
 }
+
+
+/* Contrast and affordance fixes: keep the send action visible in every theme. */
+.send-btn {
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+  border: 1px solid var(--accent-press) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.22);
+}
+.send-btn i, .send-btn svg {
+  display: block;
+  color: currentColor !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.send-btn:disabled {
+  background: var(--raised) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-2) !important;
+  box-shadow: none;
+}
+.send-btn:disabled i, .send-btn:disabled svg {
+  color: var(--text-2) !important;
+}
+.brand-mark {
+  background: var(--accent);
+  border-color: var(--accent-press);
+  color: var(--on-accent);
+  font-weight: 700;
+}

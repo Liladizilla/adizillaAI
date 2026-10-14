@@ -819,6 +819,67 @@ let sendPasswordResetEmail, signOut, updateProfile;
     openDialog("imageDialog");
   });
   $("imageDialog").addEventListener("close", () => $("createImageBtn").setAttribute("aria-pressed", "false"));
+  const imageStatus = document.createElement("div");
+  imageStatus.className = "image-generation-status hidden";
+  imageStatus.setAttribute("role", "status");
+  imageStatus.setAttribute("aria-live", "polite");
+  imageStatus.innerHTML = '<span class="image-generation-spinner" aria-hidden="true"></span><span><strong>Generating your image</strong><small>This can take a little while. Keep this window open.</small></span>';
+  const imageError = $("imageError");
+  imageError.parentNode.insertBefore(imageStatus, imageError);
+  const imageUxStyles = document.createElement("style");
+  imageUxStyles.textContent = `
+    .image-generation-status { display:flex; align-items:center; gap:12px; margin-top:14px; padding:13px 14px; border:1px solid var(--border); border-radius:var(--r-md); background:var(--surface); color:var(--text); }
+    .image-generation-status > span:last-child { display:flex; flex-direction:column; gap:3px; }
+    .image-generation-status strong { font-size:13px; font-weight:600; }
+    .image-generation-status small { color:var(--muted); font-size:12px; line-height:1.45; }
+    .image-generation-spinner { width:20px; height:20px; flex:0 0 20px; border:2px solid var(--border-strong); border-top-color:var(--accent); border-radius:50%; animation:adizilla-image-spin .75s linear infinite; }
+    @keyframes adizilla-image-spin { to { transform:rotate(360deg); } }
+    .generated-image-footer { flex-wrap:wrap; }
+    .download-generated-image { min-height:36px; padding:0 11px; font-size:13px; }
+    .download-generated-image:disabled { cursor:wait; opacity:.65; }
+    @media (prefers-reduced-motion:reduce) { .image-generation-spinner { animation:none; } }
+  `;
+  document.head.appendChild(imageUxStyles);
+  const downloadImageButton = document.createElement("button");
+  downloadImageButton.type = "button";
+  downloadImageButton.className = "secondary-btn download-generated-image";
+  downloadImageButton.innerHTML = '<i class="ph ph-download-simple" aria-hidden="true"></i> Download image';
+  $("openGeneratedImage").parentNode.insertBefore(downloadImageButton, $("openGeneratedImage"));
+  downloadImageButton.addEventListener("click", async () => {
+    const imageUrl = $("generatedImage").currentSrc || $("generatedImage").src;
+    if (!imageUrl) return;
+    downloadImageButton.disabled = true;
+    downloadImageButton.textContent = "Preparing download…";
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) throw new Error("Download request failed");
+      const blob = await response.blob();
+      if (!blob.size || !blob.type.startsWith("image/")) throw new Error("Image data was not returned");
+      const extension = ({ "image/png":"png", "image/webp":"webp", "image/gif":"gif", "image/jpeg":"jpg" })[blob.type.split(";")[0]] || "png";
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = "adizillaai-image-" + new Date().toISOString().slice(0,10) + "." + extension;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+      toast("Image download started.");
+    } catch {
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.download = "adizillaai-generated-image";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast("Opened the original image. If it did not download, use your browser's Save image option.");
+    } finally {
+      downloadImageButton.disabled = false;
+      downloadImageButton.innerHTML = '<i class="ph ph-download-simple" aria-hidden="true"></i> Download image';
+    }
+  });
   $("imageForm").addEventListener("submit", async event => {
     event.preventDefault();
     await authInitialization;
@@ -828,8 +889,10 @@ let sendPasswordResetEmail, signOut, updateProfile;
     const button = $("generateImageSubmit");
     const error = $("imageError");
     const wrap = $("generatedImageWrap");
+    const image = $("generatedImage");
     button.disabled = true;
-    button.textContent = "Creating…";
+    button.innerHTML = '<span class="image-generation-spinner" aria-hidden="true" style="display:inline-block;width:14px;height:14px;vertical-align:middle;margin-right:7px"></span>Generating…';
+    imageStatus.classList.remove("hidden");
     error.textContent = "";
     error.classList.add("hidden");
     wrap.classList.add("hidden");
@@ -838,18 +901,27 @@ let sendPasswordResetEmail, signOut, updateProfile;
       const response = await fetch("/api/images/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-        body: JSON.stringify({ prompt: prompt })
+        body: JSON.stringify({ prompt })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.detail || "Image generation failed.");
-      $("generatedImage").src = data.image_url;
+      if (typeof data.image_url !== "string" || !/^(https?:|data:image\/)/i.test(data.image_url)) {
+        throw new Error("The image provider returned an invalid image.");
+      }
+      const imageLoaded = new Promise((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("The image was generated, but it could not be displayed. Try again."));
+        image.src = data.image_url;
+      });
       $("openGeneratedImage").href = data.image_url;
       $("generatedImageModel").textContent = data.model || "AI-generated";
+      await imageLoaded;
       wrap.classList.remove("hidden");
     } catch (err) {
       error.textContent = err.message || "Could not generate that image.";
       error.classList.remove("hidden");
     } finally {
+      imageStatus.classList.add("hidden");
       button.disabled = false;
       button.textContent = "Generate image ↗";
     }

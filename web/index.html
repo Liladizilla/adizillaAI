@@ -33,9 +33,9 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <div class="brand-row"><button class="icon-btn desktop-collapse" id="collapseSidebar" type="button" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="ph ph-sidebar-simple" aria-hidden="true"></i></button>
-        <div class="brand-mark" aria-hidden="true"><span>a</span></div>
-        <div class="brand-copy"><strong>adizilla<span>AI</span></strong><small>AI workspace</small></div>
+      <div class="brand-row"><div class="brand-mark" aria-hidden="true"><span>ai</span></div>
+        <div class="brand-copy"><strong>adizilla<span>AI</span></strong></div>
+        <button class="icon-btn desktop-collapse" id="collapseSidebar" type="button" aria-label="Collapse sidebar" title="Collapse sidebar"><i class="ph ph-sidebar-simple" aria-hidden="true"></i></button>
         <button class="icon-btn mobile-only" id="closeSidebar" aria-label="Close sidebar"><i class="ph ph-x" aria-hidden="true"></i></button>
       </div>
       <button class="new-chat" id="newChat"><span class="plus" aria-hidden="true"><i class="ph ph-plus"></i></span> New chat <kbd id="newChatShortcut" aria-label="New chat shortcut">Ctrl + Shift + O</kbd></button>
@@ -62,7 +62,7 @@
       <section id="chatPanel" class="panel active-panel">
         <div class="conversation-scroll" id="conversationScroll">
           <div class="welcome" id="welcome"><h1 id="welcomeGreeting">What's on your mind?</h1><div class="suggestion-list" aria-label="Try a prompt">
-<button class="suggestion" data-prompt="Help me turn rough notes into a clear, prioritized plan. Ask me to share the notes if I have not provided them."><span>Turn these rough notes into a clear plan</span><span class="suggestion-arrow" aria-hidden="true"></span></button>
+<button class="suggestion" data-prompt="Help me turn rough notes into a clear, prioritized plan. Ask me to share the notes if I have not provided them."><span>Turn these rough notes into a clear plan</span><i class="ph ph-arrow-up-right suggestion-arrow" aria-hidden="true"></i></button>
 <button class="suggestion" data-prompt="Help me debug a problem step by step. Ask me for the exact error and relevant code if they are missing."><span>Explain this error and how to fix it</span><span class="suggestion-arrow" aria-hidden="true"></span></button>
 <button class="suggestion" data-prompt="Help me write a clear, confident email that sounds natural. Ask me for the recipient and purpose if needed."><span>Rewrite an email so it sounds confident, not stiff</span><span class="suggestion-arrow" aria-hidden="true"></span></button>
 <button class="suggestion" data-prompt="Help me compare my options by cost, effort, risks, and long-term value. Ask me to list the options if I have not provided them."><span>Compare options by cost, effort, and risk</span><span class="suggestion-arrow" aria-hidden="true"></span></button>
